@@ -46,7 +46,7 @@ def run_evaluation(df, year_cutoff=2019, nn_epochs=60) -> pd.DataFrame:
     rows.append(_row("baseline_persistencia", yte, bp, None, float("nan")))
 
     cols = ["modelo", "accuracy", "precision", "recall", "f1", "roc_auc",
-            "pr_auc", "train_acc", "gap", "tn", "fp", "fn", "tp"]
+            "pr_auc", "brier", "train_acc", "gap", "tn", "fp", "fn", "tp"]
     return pd.DataFrame(rows)[cols]
 
 
