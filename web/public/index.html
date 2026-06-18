@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SATEC — Alerta temprana de la enfermedad de Carrión</title>
+  <meta name="description" content="Mapa de riesgo de brotes de la enfermedad de Carrión por provincia del Perú, estimado con redes neuronales y árboles de decisión sobre vigilancia del MINSA y clima." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header class="site-header">
+    <div class="brand">
+      <span class="brand-mark" aria-hidden="true"></span>
+      <div>
+        <h1 class="brand-name">SATEC</h1>
+        <p class="brand-full">Sistema de Alerta Temprana de la Enfermedad de Carrión</p>
+      </div>
+    </div>
+    <p class="brand-tagline">
+      Riesgo de brote por provincia para las próximas 4 semanas, estimado con
+      aprendizaje automático sobre 25 años de vigilancia del MINSA y variables climáticas.
+    </p>
+  </header>
+
+  <main class="layout">
+    <section class="map-panel" aria-label="Mapa de riesgo">
+      <div id="map"></div>
+      <div class="map-overlay">
+        <span class="overlay-eyebrow">Canal endémico · ML</span>
+        <h2 class="overlay-title">Mapa de riesgo</h2>
+        <ul class="legend" id="legend">
+          <li><span class="dot dot-alto"></span> Alto</li>
+          <li><span class="dot dot-medio"></span> Medio</li>
+          <li><span class="dot dot-bajo"></span> Bajo</li>
+          <li><span class="dot dot-na"></span> Sin dato</li>
+        </ul>
+      </div>
+    </section>
+
+    <aside class="detail-panel" aria-live="polite">
+      <p class="detail-hint" id="detail-hint">
+        Pasa el cursor o toca una provincia para ver su nivel de alerta y las
+        predicciones de los dos modelos.
+      </p>
+      <article class="detail-card" id="detail-card" hidden>
+        <header class="detail-head">
+          <span class="detail-eyebrow" id="detail-depto">—</span>
+          <h3 class="detail-prov" id="detail-prov">—</h3>
+          <span class="nivel-badge" id="detail-nivel">—</span>
+        </header>
+        <dl class="detail-grid">
+          <div>
+            <dt>Red Neuronal</dt>
+            <dd><span class="big-num" id="detail-rn">—</span><span class="unit">prob. de brote</span></dd>
+          </div>
+          <div>
+            <dt>Árbol de Decisión</dt>
+            <dd><span class="big-num" id="detail-ad">—</span><span class="unit">predicción</span></dd>
+          </div>
+          <div>
+            <dt>Casos (última semana)</dt>
+            <dd><span class="big-num" id="detail-casos">—</span><span class="unit">notificados</span></dd>
+          </div>
+        </dl>
+        <p class="detail-note">
+          La probabilidad es la salida de la red neuronal; el árbol entrega una decisión
+          binaria. Cuando difieren, conviene mirar ambos.
+        </p>
+      </article>
+    </aside>
+  </main>
+
+  <section class="models" aria-label="Comparación de modelos">
+    <div class="models-head">
+      <span class="eyebrow">Validación temporal · entrenado ≤2019 · probado 2020–2024</span>
+      <h2>Red Neuronal frente a Árbol de Decisión</h2>
+      <p>
+        Sobre datos nuevos, la red prioriza no dejar pasar brotes (mayor sensibilidad);
+        el árbol con poda es más conservador. El árbol sin poda memoriza el pasado y
+        falla ante lo nuevo.
+      </p>
+    </div>
+    <div class="model-cards">
+      <article class="model-card model-card--rn">
+        <h3>Red Neuronal</h3>
+        <p class="model-arch">5→32→32→1 · ReLU + sigmoide</p>
+        <dl>
+          <div><dt>Sensibilidad (brotes)</dt><dd>0,81</dd></div>
+          <div><dt>Precisión</dt><dd>0,28</dd></div>
+          <div><dt>F1</dt><dd>0,41</dd></div>
+          <div><dt>AUC-PR</dt><dd>0,73</dd></div>
+        </dl>
+      </article>
+      <article class="model-card model-card--ad">
+        <h3>Árbol de Decisión <span>(poda 8)</span></h3>
+        <p class="model-arch">entropía · class-weight balanceado</p>
+        <dl>
+          <div><dt>Sensibilidad (brotes)</dt><dd>0,67</dd></div>
+          <div><dt>Precisión</dt><dd>0,07</dd></div>
+          <div><dt>F1</dt><dd>0,12</dd></div>
+          <div><dt>AUC-PR</dt><dd>0,60</dd></div>
+        </dl>
+      </article>
+      <article class="model-card model-card--base">
+        <h3>Canal endémico <span>(referencia)</span></h3>
+        <p class="model-arch">método clásico OPS/MINSA</p>
+        <dl>
+          <div><dt>Sensibilidad (brotes)</dt><dd>0,64</dd></div>
+          <div><dt>Precisión</dt><dd>0,29</dd></div>
+          <div><dt>F1</dt><dd>0,40</dd></div>
+          <div><dt>AUC-PR</dt><dd>—</dd></div>
+        </dl>
+      </article>
+    </div>
+    <p class="models-takeaway">
+      Los modelos de aprendizaje automático superan al método clásico: la red neuronal
+      alcanza el mejor equilibrio entre sensibilidad y AUC-PR.
+    </p>
+  </section>
+
+  <footer class="site-footer">
+    <p class="disclaimer">
+      Herramienta de apoyo a la vigilancia epidemiológica. <strong>No sustituye el
+      diagnóstico clínico ni la confirmación de laboratorio.</strong>
+    </p>
+    <p class="sources">
+      Datos: MINSA — vigilancia de la enfermedad de Carrión 2000–2024 ·
+      NASA POWER (clima) · INEI · GeoJSON provincial (juaneladio/peru-geojson).
+      Universidad Nacional Tecnológica de Lima Sur (UNTELS).
+    </p>
+  </footer>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+  <script src="app.js"></script>
+</body>
+</html>
