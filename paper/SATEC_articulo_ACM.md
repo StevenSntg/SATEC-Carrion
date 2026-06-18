@@ -100,7 +100,7 @@ La Figura 4 (`fig_importancia.png`) reporta la importancia por permutación de l
 
 ### 4.5 El sistema interactivo
 
-La aplicación web materializa los resultados en un **mapa de riesgo del Perú** donde cada provincia endémica se colorea según su nivel de alerta (bajo/medio/alto) para la semana más reciente; al seleccionar una provincia se muestran la probabilidad de la red neuronal, la decisión del árbol y los casos notificados. El sistema es de uso libre y su código y datos son reproducibles.
+La aplicación web materializa los resultados en un **mapa de riesgo del Perú** donde cada provincia endémica se colorea según su nivel de alerta (bajo/medio/alto) para la semana más reciente; al seleccionar una provincia se muestran la probabilidad de la red neuronal, la decisión del árbol y los casos notificados. La Figura 5 (`cap_mapa_riesgo.png`) muestra una captura de la aplicación. El sistema es de uso libre y su código y datos son reproducibles.
 
 ## 5. Discusión
 
