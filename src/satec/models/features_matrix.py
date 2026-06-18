@@ -12,6 +12,7 @@ FEATURE_COLS = [
     "prec_lag4", "prec_lag8", "prec_roll4", "prec_roll8",
     "temp_lag4", "temp_lag8", "temp_roll4", "temp_roll8",
     "hum_lag4", "hum_lag8", "hum_roll4", "hum_roll8",
+    "tasa",
 ]
 
 

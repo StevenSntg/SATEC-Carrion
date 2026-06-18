@@ -61,6 +61,8 @@ def build_province_table(repo: str):
 
 def main(repo: str = ".") -> None:
     from satec.enrich.climate_download import download_all
+    from satec.enrich.population_data import (load_province_population,
+                                              attach_rate_constant)
 
     dataset, umap, prov = build_province_table(repo)
     con_geo = prov.dropna(subset=["lon", "lat"]).copy()
@@ -70,10 +72,15 @@ def main(repo: str = ".") -> None:
     download_all(con_geo, cache_dir=cache_dir)
 
     enriched = build_enriched(dataset, umap, con_geo, cache_dir)
+    pob = load_province_population(
+        os.path.join(repo, "data/raw/ubigeo_poblacion.csv"))
+    enriched = attach_rate_constant(enriched, pob)
+
     out = os.path.join(repo, "data/processed/dataset_enriched.parquet")
     enriched.to_parquet(out, index=False)
     print(f"[OK] enriquecido: {enriched.shape} -> {out}")
-    print(f"  filas con clima (prec no nula): {enriched['prec'].notna().mean():.3f}")
+    print(f"  filas con clima: {enriched['prec'].notna().mean():.3f} | "
+          f"con poblacion: {enriched['poblacion'].notna().mean():.3f}")
 
 
 if __name__ == "__main__":
