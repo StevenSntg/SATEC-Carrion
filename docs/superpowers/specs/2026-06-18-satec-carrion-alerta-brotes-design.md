@@ -15,7 +15,7 @@
 
 Se construirá **SATEC**, el primer sistema de **alerta temprana de brotes de la enfermedad de Carrión** (bartonelosis humana, *Bartonella bacilliformis*) basado en aprendizaje automático. Usa 25 años de vigilancia epidemiológica nacional del MINSA (2000–2024, ~46.120 casos) **enriquecidos con clima (NASA POWER) y población (INEI)**, para predecir, a nivel de **provincia** y con **4 semanas de anticipación**, si una zona entrará en **nivel de brote** según el **canal endémico** (estándar OPS/MINSA).
 
-Se comparan tres paradigmas de clasificación —**Árbol de Decisión**, **Red Neuronal** y **ensembles** (Random Forest / Gradient Boosting)— contra **baselines epidemiológicos**, bajo **validación temporal** estricta. El sistema se despliega como una **aplicación web nueva e independiente** con un mapa de riesgo del Perú, y como **código y datos reproducibles**.
+Se comparan dos paradigmas de clasificación —**Árbol de Decisión** y **Red Neuronal**— contra **baselines epidemiológicos**, bajo **validación temporal** estricta. El sistema se despliega como una **aplicación web nueva e independiente** con un mapa de riesgo del Perú, y como **código y datos reproducibles**.
 
 Este trabajo reemplaza el enfoque previo (clasificación de la *fase* aguda vs. eruptiva, con un conjunto clínico sintético) por un problema con **datos 100% reales** y **utilidad directa en salud pública**.
 
@@ -26,18 +26,18 @@ La comparación "Red Neuronal vs. Árbol de Decisión" por sí sola no constituy
 1. **Primer sistema de alerta temprana de Carrión con ML.** La literatura ha aplicado ML al dengue y a la leishmaniasis en Perú, pero **no a la enfermedad de Carrión** para predicción de brotes.
 2. **Integración del canal endémico (herramienta epidemiológica clásica de la OPS) como objetivo de aprendizaje supervisado.** Aporte metodológico replicable a otras enfermedades de vigilancia.
 3. **Enriquecimiento multifuente** (vigilancia + clima rezagado + población) sobre una enfermedad transmitida por vector sensible al clima.
-4. **Comparación rigurosa de paradigmas** (interpretables vs. caja negra vs. ensembles) bajo **validación temporal**, con baselines que prueban si el ML aporta sobre métodos epidemiológicos estándar.
+4. **Comparación rigurosa de paradigmas** (árbol interpretable vs. red neuronal) bajo **validación temporal**, con baselines que prueban si el ML aporta sobre métodos epidemiológicos estándar.
 5. **Sistema abierto, reproducible y desplegado**, usable por personal de salud pública.
 
 ## 3. Objetivos
 
-**General.** Desarrollar y validar un sistema de alerta temprana de brotes de la enfermedad de Carrión a nivel provincial en el Perú, comparando árboles de decisión, redes neuronales y ensembles sobre datos de vigilancia enriquecidos con clima y población.
+**General.** Desarrollar y validar un sistema de alerta temprana de brotes de la enfermedad de Carrión a nivel provincial en el Perú, comparando árboles de decisión y redes neuronales sobre datos de vigilancia enriquecidos con clima y población.
 
 **Específicos.**
 - O1. Construir un pipeline reproducible que transforme la vigilancia de casos individuales del MINSA en una serie espacio-temporal provincia × semana, con ejemplos negativos imputados.
 - O2. Definir el objetivo de "brote" mediante el canal endémico, respetando la causalidad temporal.
 - O3. Enriquecer con variables climáticas rezagadas (NASA POWER) y poblacionales (INEI).
-- O4. Entrenar y comparar AD, RN y ensembles, frente a baselines (canal endémico clásico y persistencia), bajo validación temporal.
+- O4. Entrenar y comparar AD y RN, frente a baselines (canal endémico clásico y persistencia), bajo validación temporal.
 - O5. Evaluar con métricas adecuadas a eventos raros (recall de brotes, AUC-PR), calibración e interpretabilidad (SHAP).
 - O6. Desplegar una aplicación web con mapa de riesgo y comparador de modelos.
 - O7. Redactar el artículo en formato ACM para una revista indexada.
@@ -47,7 +47,7 @@ La comparación "Red Neuronal vs. Árbol de Decisión" por sí sola no constituy
 **Incluye:**
 - Predicción de **nivel de alerta de brote** (clasificación) a 4 semanas, a nivel **provincial**, en zonas endémicas.
 - Datos reales: MINSA + NASA POWER + INEI.
-- Modelos: AD, RN, RF, Gradient Boosting; baselines: canal endémico y persistencia.
+- Modelos: Árbol de Decisión (con y sin poda) y Red Neuronal; baselines: canal endémico y persistencia.
 - Validación temporal, métricas, calibración, interpretabilidad.
 - Web nueva e independiente + paper ACM.
 
@@ -137,13 +137,10 @@ El **canal endémico** (OPS) resume el comportamiento histórico esperado de cas
 | Modelo | Librería | Rol |
 |---|---|---|
 | Árbol de Decisión (con y sin poda) | scikit-learn | Eje del trabajo · interpretable · evidencia de sobreajuste |
-| Red Neuronal feedforward | tf_keras / TensorFlow | Eje del trabajo · generalización estable |
-| Random Forest | scikit-learn | Ensemble de referencia (bagging) |
-| Gradient Boosting (XGBoost / LightGBM) | xgboost / lightgbm | Ensemble de referencia (boosting) · estado del arte tabular |
-| **Canal endémico clásico** | propio | **Baseline epidemiológico** |
+| Red Neuronal feedforward | tf_keras / TensorFlow | Eje del trabajo · generalización estable || **Canal endémico clásico** | propio | **Baseline epidemiológico** |
 | **Persistencia** (predice = estado actual) | propio | **Baseline ingenuo** |
 
-La RN usa normalización min-max (parámetros guardados para la web); los árboles/ensembles no la requieren. Los baselines son críticos: si el ML no supera al canal endémico clásico, ese también es un resultado honesto y publicable.
+La RN usa normalización min-max (parámetros guardados para la web); el árbol no la requiere. Los baselines son críticos: si el ML no supera al canal endémico clásico, ese también es un resultado honesto y publicable.
 
 ## 12. Validación y métricas
 
@@ -166,7 +163,7 @@ Los brotes son raros (clase minoritaria). Estrategias a evaluar y documentar:
 - **Independiente** de la web actual (Titanic/Carrión). Proyecto y diseño visual propios.
 - **Componentes:**
   - 🗺️ **Mapa de riesgo del Perú** (coroplético por provincia) con el nivel de alerta predicho.
-  - Selector provincia + semana → predicción de AD, RN y ensemble con confianza.
+  - Selector provincia + semana → predicción de AD y RN con confianza.
   - Visualización del **canal endémico** por provincia (curva clásica).
   - Panel comparativo de modelos (métricas).
 - **Inferencia:** RN vía TensorFlow.js; árboles vía recorrido JSON; o predicciones precomputadas servidas estáticamente.
@@ -194,7 +191,7 @@ SATEC-Carrion/
 ├── src/
 │   ├── data/        # limpieza, agregación, rejilla, canal endémico
 │   ├── features/    # ingeniería de características
-│   ├── models/      # entrenamiento AD, RN, ensembles, baselines
+│   ├── models/      # entrenamiento AD, RN, baselines
 │   ├── evaluation/  # validación temporal, métricas, calibración, SHAP
 │   └── export/      # exportar a TF.js / JSON para la web
 ├── notebooks/       # exploración y generación de figuras
@@ -232,7 +229,7 @@ SATEC-Carrion/
 ## 20. Criterios de éxito
 
 - Pipeline reproducible de extremo a extremo (raw → dataset modelable → modelos → métricas → web).
-- Comparación AD/RN/ensembles vs. baselines bajo validación temporal, con métricas adecuadas a eventos raros.
+- Comparación AD/RN vs. baselines bajo validación temporal, con métricas adecuadas a eventos raros.
 - Conclusión defendible (el ML supera —o no— al canal endémico clásico, con evidencia).
 - Web funcional con mapa de riesgo y comparador.
 - Artículo ACM completo, honesto y listo para someter a una revista indexada.
@@ -240,7 +237,7 @@ SATEC-Carrion/
 ## 21. Trabajo futuro
 
 - Granularidad distrital con modelos espaciales.
-- Modelos secuenciales (LSTM/Transformers temporales).
+- Modelos de ensamble (bosques aleatorios, potenciación de gradiente) y modelos secuenciales (LSTM/Transformers temporales).
 - Integración con datos entomológicos y de movilidad.
 - Validación prospectiva en campo con una DIRESA.
 
