@@ -1,7 +1,6 @@
 import numpy as np
 import pandas as pd
-from satec.models.train import (train_decision_tree, train_random_forest,
-                                train_hist_gb)
+from satec.models.train import train_decision_tree
 
 
 def _xy(n=80):
@@ -11,9 +10,8 @@ def _xy(n=80):
     return X, y
 
 
-def test_arbol_y_ensembles_aprenden_patron_separable():
+def test_arbol_aprende_patron_separable():
     X, y = _xy()
-    for train_fn in (train_decision_tree, train_random_forest, train_hist_gb):
-        clf = train_fn(X, y)
-        acc = (clf.predict(X) == y).mean()
-        assert acc > 0.9
+    clf = train_decision_tree(X, y)
+    acc = (clf.predict(X) == y).mean()
+    assert acc > 0.9

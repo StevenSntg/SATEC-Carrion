@@ -7,8 +7,7 @@ from satec.models.features_matrix import feature_matrix
 from satec.models.split import temporal_split
 from satec.models.baselines import baseline_persistence
 from satec.models.metrics import evaluate_predictions
-from satec.models.train import (train_decision_tree, train_random_forest,
-                                train_hist_gb, train_neural_net,
+from satec.models.train import (train_decision_tree, train_neural_net,
                                 nn_predict_proba)
 
 
@@ -26,13 +25,11 @@ def run_evaluation(df, year_cutoff=2019, nn_epochs=60) -> pd.DataFrame:
     Xte, yte = feature_matrix(test_df)
     rows = []
 
-    sklearn_models = {
+    arboles = {
         "arbol_sin_poda": train_decision_tree(Xtr, ytr, max_depth=None),
         "arbol_poda8": train_decision_tree(Xtr, ytr, max_depth=8),
-        "random_forest": train_random_forest(Xtr, ytr),
-        "hist_gb": train_hist_gb(Xtr, ytr),
     }
-    for nombre, clf in sklearn_models.items():
+    for nombre, clf in arboles.items():
         score = clf.predict_proba(Xte)[:, 1]
         pred = clf.predict(Xte)
         train_acc = float((clf.predict(Xtr) == ytr.to_numpy()).mean())

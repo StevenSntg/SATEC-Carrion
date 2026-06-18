@@ -3,25 +3,12 @@ import os
 import numpy as np
 import pandas as pd
 from sklearn.tree import DecisionTreeClassifier
-from sklearn.ensemble import (RandomForestClassifier,
-                              HistGradientBoostingClassifier)
 from sklearn.utils.class_weight import compute_class_weight
 
 
 def train_decision_tree(X, y, max_depth=None):
     clf = DecisionTreeClassifier(criterion="entropy", max_depth=max_depth,
                                  class_weight="balanced", random_state=42)
-    return clf.fit(X, y)
-
-
-def train_random_forest(X, y):
-    clf = RandomForestClassifier(n_estimators=300, class_weight="balanced",
-                                 random_state=42, n_jobs=-1)
-    return clf.fit(X, y)
-
-
-def train_hist_gb(X, y):
-    clf = HistGradientBoostingClassifier(max_iter=300, random_state=42)
     return clf.fit(X, y)
 
 

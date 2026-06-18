@@ -23,7 +23,7 @@ def _dataset(n_per_year=200):
 def test_run_evaluation_devuelve_metricas_por_modelo():
     res = run_evaluation(_dataset(), year_cutoff=2019, nn_epochs=3)
     modelos = set(res["modelo"])
-    assert {"arbol_sin_poda", "red_neuronal", "random_forest",
-            "hist_gb", "baseline_persistencia"} <= modelos
+    assert {"arbol_sin_poda", "arbol_poda8", "red_neuronal",
+            "baseline_persistencia"} <= modelos
     assert "recall" in res.columns and "pr_auc" in res.columns
     assert res["recall"].notna().all()
