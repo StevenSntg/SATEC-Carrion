@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>SATEC — Alerta temprana de la enfermedad de Carrión</title>
+  <title>SATEC · Alerta temprana de la enfermedad de Carrión</title>
   <meta name="description" content="Mapa de riesgo de brotes de la enfermedad de Carrión por provincia del Perú, estimado con redes neuronales y árboles de decisión sobre vigilancia del MINSA y clima." />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -21,18 +21,18 @@
       </div>
     </div>
     <p class="brand-tagline">
-      Riesgo de brote por provincia para las próximas 4 semanas, estimado con
-      aprendizaje automático sobre 25 años de vigilancia del MINSA y variables climáticas.
+      Riesgo de brote por provincia para las próximas 4 semanas, estimado con aprendizaje
+      automático sobre 25 años de vigilancia del MINSA y variables climáticas.
     </p>
   </header>
 
   <main class="layout">
-    <section class="map-panel" aria-label="Mapa de riesgo">
+    <section class="map-panel" aria-label="Mapa de riesgo del Perú">
       <div id="map"></div>
       <div class="map-overlay">
         <span class="overlay-eyebrow">Canal endémico · ML</span>
-        <h2 class="overlay-title">Mapa de riesgo</h2>
-        <ul class="legend" id="legend">
+        <h2 class="overlay-title">Nivel de alerta</h2>
+        <ul class="legend">
           <li><span class="dot dot-alto"></span> Alto</li>
           <li><span class="dot dot-medio"></span> Medio</li>
           <li><span class="dot dot-bajo"></span> Bajo</li>
@@ -43,94 +43,82 @@
 
     <aside class="detail-panel" aria-live="polite">
       <p class="detail-hint" id="detail-hint">
-        Pasa el cursor o toca una provincia para ver su nivel de alerta y las
-        predicciones de los dos modelos.
+        Pasa el cursor o toca una provincia para ver su <b>nivel de alerta</b> y la predicción
+        de cada modelo. Las provincias coloreadas son las zonas endémicas de Carrión.
       </p>
-      <article class="detail-card" id="detail-card" hidden>
-        <header class="detail-head">
-          <span class="detail-eyebrow" id="detail-depto">—</span>
-          <h3 class="detail-prov" id="detail-prov">—</h3>
-          <span class="nivel-badge" id="detail-nivel">—</span>
-        </header>
+      <div class="detail-card" id="detail-card" hidden>
+        <span class="detail-eyebrow" id="detail-depto">Departamento</span>
+        <h3 class="detail-prov" id="detail-prov">Provincia</h3>
+        <span class="nivel-badge" id="detail-nivel">nivel</span>
         <dl class="detail-grid">
-          <div>
-            <dt>Red Neuronal</dt>
-            <dd><span class="big-num" id="detail-rn">—</span><span class="unit">prob. de brote</span></dd>
-          </div>
-          <div>
-            <dt>Árbol de Decisión</dt>
-            <dd><span class="big-num" id="detail-ad">—</span><span class="unit">predicción</span></dd>
-          </div>
-          <div>
-            <dt>Casos (última semana)</dt>
-            <dd><span class="big-num" id="detail-casos">—</span><span class="unit">notificados</span></dd>
-          </div>
+          <div class="detail-row"><dt>Red Neuronal (prob. de brote)</dt><dd id="detail-rn">0%</dd></div>
+          <div class="detail-row"><dt>Árbol de Decisión</dt><dd id="detail-ad">sin brote</dd></div>
+          <div class="detail-row"><dt>Casos (última semana)</dt><dd id="detail-casos">0</dd></div>
         </dl>
         <p class="detail-note">
-          La probabilidad es la salida de la red neuronal; el árbol entrega una decisión
-          binaria. Cuando difieren, conviene mirar ambos.
+          La red entrega una probabilidad; el árbol, una decisión binaria. Cuando difieren,
+          conviene mirar ambos.
         </p>
-      </article>
+      </div>
     </aside>
   </main>
 
   <section class="models" aria-label="Comparación de modelos">
     <div class="models-head">
-      <span class="eyebrow">Validación temporal · entrenado ≤2019 · probado 2020–2024</span>
+      <span class="eyebrow">Validación temporal · entrenado hasta 2019 · probado 2020 a 2024</span>
       <h2>Red Neuronal frente a Árbol de Decisión</h2>
       <p>
-        Sobre datos nuevos, la red prioriza no dejar pasar brotes (mayor sensibilidad);
-        el árbol con poda es más conservador. El árbol sin poda memoriza el pasado y
-        falla ante lo nuevo.
+        Sobre datos nuevos, la red prioriza no dejar pasar brotes (mayor sensibilidad); el árbol
+        con poda es más conservador, y el árbol sin poda memoriza el pasado y falla ante lo nuevo.
       </p>
     </div>
     <div class="model-cards">
-      <article class="model-card model-card--rn">
-        <h3>Red Neuronal</h3>
-        <p class="model-arch">5→32→32→1 · ReLU + sigmoide</p>
+      <article class="model-card is-best">
+        <h3>Red Neuronal <span class="tag-best">mejor</span></h3>
+        <p class="model-arch">24 → 32 → 32 → 1 · ReLU + sigmoide</p>
         <dl>
-          <div><dt>Sensibilidad (brotes)</dt><dd>0,81</dd></div>
-          <div><dt>Precisión</dt><dd>0,28</dd></div>
-          <div><dt>F1</dt><dd>0,41</dd></div>
-          <div><dt>AUC-PR</dt><dd>0,73</dd></div>
+          <div class="metric"><dt>Sensibilidad (brotes)</dt><dd>0,81</dd></div>
+          <div class="metric"><dt>F1</dt><dd>0,41</dd></div>
+          <div class="metric"><dt>AUC-PR</dt><dd>0,745</dd></div>
+          <div class="metric"><dt>Brier</dt><dd>0,012</dd></div>
         </dl>
       </article>
-      <article class="model-card model-card--ad">
+      <article class="model-card">
         <h3>Árbol de Decisión <span>(poda 8)</span></h3>
-        <p class="model-arch">entropía · class-weight balanceado</p>
+        <p class="model-arch">entropía · pesos balanceados</p>
         <dl>
-          <div><dt>Sensibilidad (brotes)</dt><dd>0,67</dd></div>
-          <div><dt>Precisión</dt><dd>0,07</dd></div>
-          <div><dt>F1</dt><dd>0,12</dd></div>
-          <div><dt>AUC-PR</dt><dd>0,60</dd></div>
+          <div class="metric"><dt>Sensibilidad (brotes)</dt><dd>0,71</dd></div>
+          <div class="metric"><dt>F1</dt><dd>0,13</dd></div>
+          <div class="metric"><dt>AUC-PR</dt><dd>0,625</dd></div>
+          <div class="metric"><dt>Brier</dt><dd>0,015</dd></div>
         </dl>
       </article>
-      <article class="model-card model-card--base">
+      <article class="model-card">
         <h3>Canal endémico <span>(referencia)</span></h3>
-        <p class="model-arch">método clásico OPS/MINSA</p>
+        <p class="model-arch">método clásico OPS / MINSA</p>
         <dl>
-          <div><dt>Sensibilidad (brotes)</dt><dd>0,64</dd></div>
-          <div><dt>Precisión</dt><dd>0,29</dd></div>
-          <div><dt>F1</dt><dd>0,40</dd></div>
-          <div><dt>AUC-PR</dt><dd>—</dd></div>
+          <div class="metric"><dt>Sensibilidad (brotes)</dt><dd>0,64</dd></div>
+          <div class="metric"><dt>F1</dt><dd>0,40</dd></div>
+          <div class="metric"><dt>AUC-PR</dt><dd>n/d</dd></div>
+          <div class="metric"><dt>Brier</dt><dd>n/d</dd></div>
         </dl>
       </article>
     </div>
     <p class="models-takeaway">
-      Los modelos de aprendizaje automático superan al método clásico: la red neuronal
-      alcanza el mejor equilibrio entre sensibilidad y AUC-PR.
+      Los modelos de aprendizaje automático superan al método clásico: la Red Neuronal logra
+      el mejor equilibrio entre sensibilidad y AUC-PR, anticipando brotes que la regla clásica
+      no captura.
     </p>
   </section>
 
   <footer class="site-footer">
     <p class="disclaimer">
-      Herramienta de apoyo a la vigilancia epidemiológica. <strong>No sustituye el
-      diagnóstico clínico ni la confirmación de laboratorio.</strong>
+      Herramienta de apoyo a la vigilancia epidemiológica. <strong>No sustituye el diagnóstico
+      clínico ni la confirmación de laboratorio.</strong>
     </p>
     <p class="sources">
-      Datos: MINSA — vigilancia de la enfermedad de Carrión 2000–2024 ·
-      NASA POWER (clima) · INEI · GeoJSON provincial (juaneladio/peru-geojson).
-      Universidad Nacional Tecnológica de Lima Sur (UNTELS).
+      Datos: MINSA (vigilancia 2000 a 2024), NASA POWER (clima), INEI (población).
+      Mapa base: OpenStreetMap y CARTO. Universidad Nacional Tecnológica de Lima Sur (UNTELS).
     </p>
   </footer>
 

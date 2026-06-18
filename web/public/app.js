@@ -1,84 +1,82 @@
-/* SATEC — mapa de riesgo de brotes de la enfermedad de Carrión por provincia. */
+/* SATEC — mapa de riesgo de brotes de Carrión por provincia del Perú. */
 (function () {
   "use strict";
 
-  var NIVEL_COLOR = { alto: "#e0514a", medio: "#e6a53b", bajo: "#34a577" };
-  var NA_COLOR = "#38465f";
+  var NIVEL = {
+    alto:  "oklch(0.63 0.20 25)",
+    medio: "oklch(0.80 0.15 75)",
+    bajo:  "oklch(0.72 0.14 155)"
+  };
+  var NA = "oklch(0.55 0.02 200)";
+  var nivelColor = function (info) { return info && NIVEL[info.nivel] ? NIVEL[info.nivel] : NA; };
 
   var map = L.map("map", {
-    zoomControl: false,
-    attributionControl: false,
-    scrollWheelZoom: false,
-  }).setView([-9.6, -76], 6);
+    zoomControl: false, attributionControl: true,
+    scrollWheelZoom: false, minZoom: 4, maxZoom: 11
+  }).setView([-9.8, -75.4], 5.4);
   L.control.zoom({ position: "bottomright" }).addTo(map);
 
-  map.createPane("provincias");
+  // Mapa base real del Perú: da el contexto geográfico (costa, fronteras, ciudades).
+  L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png", {
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a> &middot; &copy; <a href="https://carto.com/attributions">CARTO</a>',
+    subdomains: "abcd", maxZoom: 19
+  }).addTo(map);
 
   var hint = document.getElementById("detail-hint");
   var card = document.getElementById("detail-card");
-  var elDepto = document.getElementById("detail-depto");
-  var elProv = document.getElementById("detail-prov");
-  var elNivel = document.getElementById("detail-nivel");
-  var elRN = document.getElementById("detail-rn");
-  var elAD = document.getElementById("detail-ad");
-  var elCasos = document.getElementById("detail-casos");
+  var el = function (id) { return document.getElementById(id); };
 
-  function ubigeo(feature) {
-    return String(feature.properties.FIRST_IDPR).padStart(4, "0");
-  }
+  var ubigeo = function (f) { return String(f.properties.FIRST_IDPR).padStart(4, "0"); };
 
   Promise.all([
     fetch("data/provincias.geojson").then(function (r) { return r.json(); }),
-    fetch("data/riesgo.json").then(function (r) { return r.json(); }),
+    fetch("data/riesgo.json").then(function (r) { return r.json(); })
   ]).then(function (res) {
-    var geo = res[0];
-    var riesgo = res[1];
+    var geo = res[0], riesgo = res[1];
 
-    function styleFor(feature) {
-      var info = riesgo[ubigeo(feature)];
-      var color = info ? (NIVEL_COLOR[info.nivel] || NA_COLOR) : NA_COLOR;
-      return {
-        pane: "provincias",
-        className: "prov-path",
-        color: "#0b1220",
-        weight: 1,
-        fillColor: color,
-        fillOpacity: info ? 0.82 : 0.25,
-      };
+    function styleFor(f) {
+      var info = riesgo[ubigeo(f)];
+      return { className: "prov-path", color: "oklch(0.16 0.012 195)",
+               weight: 1, fillColor: nivelColor(info), fillOpacity: info ? 0.8 : 0.3 };
     }
 
-    function showDetail(feature) {
-      var info = riesgo[ubigeo(feature)];
-      var props = feature.properties;
-      card.hidden = false;
-      hint.hidden = true;
-      elDepto.textContent = (props.FIRST_NOMB || "Perú");
-      elProv.textContent = props.NOMBPROV || (info && info.provincia) || "—";
+    function showDetail(f) {
+      var info = riesgo[ubigeo(f)];
+      card.hidden = false; hint.hidden = true;
+      el("detail-depto").textContent = f.properties.FIRST_NOMB || "Perú";
+      el("detail-prov").textContent = f.properties.NOMBPROV || "Provincia";
+      var badge = el("detail-nivel");
       if (info) {
-        elNivel.textContent = info.nivel;
-        elNivel.className = "nivel-badge nivel-" + info.nivel;
-        elRN.textContent = Math.round(info.prob_rn * 100) + "%";
-        elAD.textContent = info.pred_ad ? "brote" : "sin brote";
-        elCasos.textContent = info.casos;
+        badge.textContent = info.nivel;
+        badge.className = "nivel-badge nivel-" + info.nivel;
+        el("detail-rn").textContent = Math.round(info.prob_rn * 100) + "%";
+        el("detail-ad").textContent = info.pred_ad ? "brote" : "sin brote";
+        el("detail-casos").textContent = info.casos;
       } else {
-        elNivel.textContent = "sin dato";
-        elNivel.className = "nivel-badge";
-        elRN.textContent = "—"; elAD.textContent = "—"; elCasos.textContent = "—";
+        badge.textContent = "sin dato"; badge.className = "nivel-badge";
+        el("detail-rn").textContent = "—"; el("detail-ad").textContent = "—"; el("detail-casos").textContent = "—";
       }
     }
 
     var layer = L.geoJSON(geo, {
       style: styleFor,
-      onEachFeature: function (feature, lyr) {
+      onEachFeature: function (f, lyr) {
+        var info = riesgo[ubigeo(f)];
+        var nivel = info ? info.nivel : "sin dato";
+        var prob = info ? Math.round(info.prob_rn * 100) + "%" : "n/d";
+        lyr.bindTooltip(
+          "<b>" + (f.properties.NOMBPROV || "") + "</b><br>" +
+          "<span class='tt-nivel' style='color:" + nivelColor(info) + "'>Riesgo " + nivel + "</span> &middot; RN " + prob,
+          { sticky: true, className: "prov-tooltip", direction: "top", opacity: 1 });
         lyr.on({
-          mouseover: function () { lyr.setStyle({ weight: 2.5, color: "#e8eef8" }); showDetail(feature); },
+          mouseover: function () { lyr.setStyle({ weight: 2.5, color: "oklch(0.97 0.008 195)", fillOpacity: 0.95 }); lyr.bringToFront(); showDetail(f); },
           mouseout: function () { layer.resetStyle(lyr); },
-          click: function () { showDetail(feature); map.fitBounds(lyr.getBounds(), { maxZoom: 9, padding: [40, 40] }); },
+          click: function () { showDetail(f); map.flyToBounds(lyr.getBounds(), { maxZoom: 9, padding: [70, 70], duration: 0.6 }); }
         });
-      },
+      }
     }).addTo(map);
 
-    map.fitBounds(layer.getBounds(), { padding: [24, 24] });
+    map.fitBounds(layer.getBounds(), { padding: [20, 20] });
   }).catch(function (err) {
     hint.textContent = "No se pudieron cargar los datos del mapa (" + err + ").";
   });
