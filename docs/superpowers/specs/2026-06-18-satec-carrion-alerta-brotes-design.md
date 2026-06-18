@@ -203,7 +203,7 @@ SATEC-Carrion/
 
 ## 17. Stack tecnológico
 
-- **Datos/ML:** Python 3.12, pandas, numpy, scikit-learn, tf_keras/TensorFlow, xgboost/lightgbm, shap, matplotlib.
+- **Datos/ML:** Python 3.12, pandas, numpy, scikit-learn, tf_keras/TensorFlow, matplotlib.
 - **Clima:** API NASA POWER. **Población:** INEI. **Mapa:** GeoJSON de provincias del Perú.
 - **Web:** React + TensorFlow.js + librería de mapas; despliegue estático (Vercel).
 - **Reproducibilidad:** semillas fijas, `requirements.txt`, scripts ejecutables de punta a punta.
