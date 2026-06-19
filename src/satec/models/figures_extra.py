@@ -1,59 +1,65 @@
-"""Figuras extra del paper: matrices de confusion y metricas derivadas (F1, etc.)."""
+"""Figuras extra del paper: matrices de confusion y metricas derivadas (calidad de revista)."""
 import os
 import numpy as np
 import pandas as pd
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
+from matplotlib.colors import LinearSegmentedColormap
 
-NOMBRES = {
-    "red_neuronal": "Red Neuronal",
-    "arbol_poda8": "Arbol (poda 8)",
-    "arbol_sin_poda": "Arbol (sin poda)",
-    "baseline_persistencia": "Canal endemico",
-}
+from satec.models.paper_style import apply_style, clean_axes, nice_model, PALETA
+
+# Mapa de color sobrio (blanco -> azul ACM) para las matrices de confusion.
+_CMAP = LinearSegmentedColormap.from_list("acmblue", ["#FFFFFF", "#0072B2"])
 
 
 def plot_confusions(res, out_path):
+    apply_style()
     modelos = ["red_neuronal", "arbol_poda8"]
-    fig, axes = plt.subplots(1, 2, figsize=(11, 4.6))
+    fig, axes = plt.subplots(1, 2, figsize=(7.4, 3.7))
     for ax, m in zip(axes, modelos):
         r = res[res["modelo"] == m].iloc[0]
         cm = np.array([[int(r["tn"]), int(r["fp"])], [int(r["fn"]), int(r["tp"])]])
-        ax.imshow(cm, cmap="cividis")
-        thr = cm.max() / 2.0
+        norm = cm / cm.max()
+        ax.imshow(norm, cmap=_CMAP, vmin=0, vmax=1)
         for i in range(2):
             for j in range(2):
                 ax.text(j, i, format(cm[i, j], ","), ha="center", va="center",
-                        color="white" if cm[i, j] < thr else "black", fontsize=14)
+                        color="white" if norm[i, j] > 0.55 else "#222222",
+                        fontsize=13, fontweight="bold")
         ax.set_xticks([0, 1]); ax.set_xticklabels(["No brote", "Brote"])
         ax.set_yticks([0, 1]); ax.set_yticklabels(["No brote", "Brote"])
-        ax.set_xlabel("Prediccion"); ax.set_ylabel("Observado")
-        ax.set_title(NOMBRES[m])
-    fig.suptitle("Matrices de confusion (conjunto de prueba 2020-2024)")
+        ax.set_xlabel("Predicción"); ax.set_ylabel("Observado")
+        ax.set_title(nice_model(m), pad=8)
+        for s in ax.spines.values():
+            s.set_visible(False)
+        ax.tick_params(length=0)
     fig.tight_layout()
-    fig.savefig(out_path, dpi=150)
+    fig.savefig(out_path)
     plt.close(fig)
 
 
 def plot_f1(res, out_path):
+    apply_style()
     res = res.copy()
     res["especificidad"] = res["tn"] / (res["tn"] + res["fp"])
     modelos = ["red_neuronal", "arbol_poda8", "arbol_sin_poda", "baseline_persistencia"]
     sub = res[res["modelo"].isin(modelos)].set_index("modelo").loc[modelos]
     mets = ["precision", "recall", "f1", "especificidad"]
-    labels = ["Precision", "Sensibilidad", "F1", "Especificidad"]
+    labels = ["Precisión", "Sensibilidad", "F1", "Especificidad"]
     x = np.arange(len(modelos)); w = 0.2
-    fig, ax = plt.subplots(figsize=(11, 5.2))
+    fig, ax = plt.subplots(figsize=(7.4, 4.2))
     for i, (mt, lb) in enumerate(zip(mets, labels)):
-        ax.bar(x + (i - 1.5) * w, sub[mt].to_numpy(), w, label=lb)
+        ax.bar(x + (i - 1.5) * w, sub[mt].to_numpy(dtype=float), w,
+               label=lb, color=PALETA[i], edgecolor="white", linewidth=0.5)
     ax.set_xticks(x)
-    ax.set_xticklabels([NOMBRES[m] for m in modelos], rotation=12, ha="right")
-    ax.set_ylabel("Valor"); ax.set_ylim(0, 1.05)
-    ax.set_title("Metricas derivadas de la matriz de confusion por modelo")
-    ax.legend(ncol=4, loc="upper center", bbox_to_anchor=(0.5, -0.13))
+    ax.set_xticklabels([nice_model(m) for m in modelos])
+    ax.set_ylabel("Valor de la métrica"); ax.set_ylim(0, 1.05)
+    ax.legend(frameon=False, ncol=4, loc="upper center",
+              bbox_to_anchor=(0.5, 1.13))
+    clean_axes(ax)
     fig.tight_layout()
-    fig.savefig(out_path, dpi=150)
+    fig.savefig(out_path)
     plt.close(fig)
 
 

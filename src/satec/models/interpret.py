@@ -7,6 +7,9 @@ import matplotlib.pyplot as plt
 from sklearn.metrics import average_precision_score
 from sklearn.calibration import calibration_curve
 
+from satec.models.paper_style import (apply_style, clean_axes, nice_var,
+                                      AZUL, NARANJA, GRIS)
+
 
 def permutation_importance_ap(predict_proba_fn, X, y, n_repeats=5, seed=42):
     """Importancia por permutacion = caida en AUC-PR al permutar cada variable.
@@ -35,25 +38,36 @@ def calibration_points(y_true, y_score, n_bins=10):
 
 
 def plot_importance(imp_df, out_path, top=12):
+    apply_style()
     sub = imp_df.head(top).iloc[::-1]
-    plt.figure(figsize=(8, 6))
-    plt.barh(sub["feature"], sub["importance"], color="#38bdc9")
-    plt.xlabel("Caida en AUC-PR al permutar la variable")
-    plt.title("Importancia de variables (permutacion) — Red Neuronal")
-    plt.tight_layout()
-    plt.savefig(out_path, dpi=150)
-    plt.close()
+    fig, ax = plt.subplots(figsize=(7.2, 4.8))
+    nombres = [nice_var(f) for f in sub["feature"]]
+    ax.barh(nombres, sub["importance"].to_numpy(dtype=float),
+            color=AZUL, edgecolor="white", linewidth=0.5)
+    ax.set_xlabel("Caída en AUC-PR al permutar la variable")
+    clean_axes(ax, grid_axis="x")
+    ax.tick_params(length=0)
+    fig.tight_layout()
+    fig.savefig(out_path)
+    plt.close(fig)
 
 
 def plot_calibration(curves, out_path):
-    plt.figure(figsize=(7, 7))
-    plt.plot([0, 1], [0, 1], "--", color="#92a4c4", label="Calibracion perfecta")
-    for nombre, (pp, pt) in curves.items():
-        plt.plot(pp, pt, "o-", label=nombre)
-    plt.xlabel("Probabilidad predicha")
-    plt.ylabel("Frecuencia observada de brote")
-    plt.title("Curva de calibracion")
-    plt.legend()
-    plt.tight_layout()
-    plt.savefig(out_path, dpi=150)
-    plt.close()
+    apply_style()
+    fig, ax = plt.subplots(figsize=(5.6, 5.4))
+    ax.plot([0, 1], [0, 1], "--", color=GRIS, linewidth=1.2,
+            label="Calibración perfecta")
+    colores = [AZUL, NARANJA]
+    for (nombre, (pp, pt)), col in zip(curves.items(), colores):
+        ax.plot(pp, pt, "o-", color=col, markersize=5, linewidth=1.6,
+                label=nombre)
+    ax.set_xlabel("Probabilidad predicha")
+    ax.set_ylabel("Frecuencia observada de brote")
+    ax.set_xlim(-0.02, 1.02); ax.set_ylim(-0.02, 1.02)
+    ax.set_aspect("equal")
+    ax.legend(frameon=False, loc="upper left")
+    clean_axes(ax)
+    ax.grid(True)
+    fig.tight_layout()
+    fig.savefig(out_path)
+    plt.close(fig)

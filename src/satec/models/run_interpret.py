@@ -31,9 +31,10 @@ def main(repo: str = ".", year_cutoff: int = 2019) -> None:
     imp.to_csv(os.path.join(results, "importancia_variables.csv"), index=False)
     plot_importance(imp, os.path.join(results, "fig_importancia.png"))
 
+    from satec.models.paper_style import nice_model
     curves = {
-        "Red Neuronal": calibration_points(yte, rn_pp(Xte), n_bins=8),
-        "Arbol (poda 8)": calibration_points(
+        nice_model("red_neuronal"): calibration_points(yte, rn_pp(Xte), n_bins=8),
+        nice_model("arbol_poda8"): calibration_points(
             yte, ad.predict_proba(Xte)[:, 1], n_bins=8),
     }
     plot_calibration(curves, os.path.join(results, "fig_calibracion.png"))
