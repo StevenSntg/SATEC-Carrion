@@ -12,7 +12,9 @@ env/
 
 # --- Datos derivados (regenerables por el pipeline) ---
 data/interim/
-data/processed/
+data/processed/*
+# Excepcion: panel enriquecido versionado para los notebooks Colab (4 MB)
+!data/processed/dataset_enriched.parquet
 
 # --- Modelos pesados (regenerables) ---
 *.h5
