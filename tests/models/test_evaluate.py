@@ -20,10 +20,12 @@ def _dataset(n_per_year=200):
     return pd.DataFrame(rows)
 
 
-def test_run_evaluation_devuelve_metricas_por_modelo():
+def test_run_evaluation_incluye_seis_modelos_y_f2():
     res = run_evaluation(_dataset(), year_cutoff=2019, nn_epochs=3)
     modelos = set(res["modelo"])
-    assert {"arbol_sin_poda", "arbol_poda8", "red_neuronal",
+    assert {"arbol_sin_poda", "arbol_poda8", "random_forest",
+            "gradient_boosting", "red_neuronal",
             "baseline_persistencia"} <= modelos
-    assert "recall" in res.columns and "pr_auc" in res.columns
+    for col in ["recall", "pr_auc", "f2", "especificidad", "umbral"]:
+        assert col in res.columns
     assert res["recall"].notna().all()
