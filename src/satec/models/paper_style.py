@@ -27,6 +27,8 @@ MODELOS = {
     "arbol_poda8": "Árbol (poda 8)",
     "arbol_sin_poda": "Árbol (sin poda)",
     "baseline_persistencia": "Canal endémico",
+    "random_forest": "Random Forest",
+    "gradient_boosting": "Gradient Boosting",
 }
 
 # Nombres legibles de las variables del modelo, para la figura de importancia.
