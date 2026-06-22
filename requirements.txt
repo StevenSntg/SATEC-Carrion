@@ -2,3 +2,13 @@ pandas==3.0.3
 numpy==1.26.4
 pytest==9.0.3
 pyarrow
+scikit-learn>=1.5
+tf-keras
+tensorflow
+tensorflowjs
+matplotlib
+nbformat
+python-docx
+latex2mathml
+lxml
+pillow
