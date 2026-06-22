@@ -8,19 +8,24 @@ import matplotlib.pyplot as plt
 from satec.models.paper_style import (apply_style, clean_axes, nice_model,
                                       PALETA, BERMELLON)
 
-ORDEN = ["red_neuronal", "arbol_poda8", "arbol_sin_poda", "baseline_persistencia"]
+ORDEN = ["red_neuronal", "random_forest", "gradient_boosting",
+         "arbol_poda8", "arbol_sin_poda", "baseline_persistencia"]
 
 
 def plot_metrics_bar(res_df, out_path):
     apply_style()
     metricas = ["recall", "pr_auc", "f1"]
     etiquetas = ["Sensibilidad", "AUC-PR", "F1"]
-    sub = res_df.set_index("modelo").reindex(ORDEN)
+    sub = res_df.set_index("modelo").reindex([m for m in ORDEN
+                                              if m in set(res_df["modelo"])])
     x = np.arange(len(sub)); w = 0.26
     fig, ax = plt.subplots(figsize=(7.2, 4.0))
     for i, (m, lb) in enumerate(zip(metricas, etiquetas)):
-        ax.bar(x + (i - 1) * w, sub[m].to_numpy(dtype=float), w,
-               label=lb, color=PALETA[i], edgecolor="white", linewidth=0.5)
+        bars = ax.bar(x + (i - 1) * w, sub[m].to_numpy(dtype=float), w,
+                      label=lb, color=PALETA[i], edgecolor="white", linewidth=0.5)
+        for rect, val in zip(bars, sub[m].to_numpy(dtype=float)):
+            ax.text(rect.get_x() + rect.get_width() / 2, val + 0.01,
+                    f"{val:.2f}", ha="center", va="bottom", fontsize=8)
     ax.set_xticks(x)
     ax.set_xticklabels([nice_model(m) for m in sub.index])
     ax.set_ylabel("Valor de la métrica")

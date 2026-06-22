@@ -43,15 +43,20 @@ def plot_f1(res, out_path):
     apply_style()
     res = res.copy()
     res["especificidad"] = res["tn"] / (res["tn"] + res["fp"])
-    modelos = ["red_neuronal", "arbol_poda8", "arbol_sin_poda", "baseline_persistencia"]
+    modelos = ["red_neuronal", "random_forest", "gradient_boosting",
+               "arbol_poda8", "arbol_sin_poda", "baseline_persistencia"]
+    modelos = [m for m in modelos if m in set(res["modelo"])]
     sub = res[res["modelo"].isin(modelos)].set_index("modelo").loc[modelos]
     mets = ["precision", "recall", "f1", "especificidad"]
     labels = ["Precisión", "Sensibilidad", "F1", "Especificidad"]
     x = np.arange(len(modelos)); w = 0.2
     fig, ax = plt.subplots(figsize=(7.4, 4.2))
     for i, (mt, lb) in enumerate(zip(mets, labels)):
-        ax.bar(x + (i - 1.5) * w, sub[mt].to_numpy(dtype=float), w,
-               label=lb, color=PALETA[i], edgecolor="white", linewidth=0.5)
+        bars = ax.bar(x + (i - 1.5) * w, sub[mt].to_numpy(dtype=float), w,
+                      label=lb, color=PALETA[i], edgecolor="white", linewidth=0.5)
+        for rect, val in zip(bars, sub[mt].to_numpy(dtype=float)):
+            ax.text(rect.get_x() + rect.get_width() / 2, val + 0.01,
+                    f"{val:.2f}", ha="center", va="bottom", fontsize=7)
     ax.set_xticks(x)
     ax.set_xticklabels([nice_model(m) for m in modelos])
     ax.set_ylabel("Valor de la métrica"); ax.set_ylim(0, 1.05)
