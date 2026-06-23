@@ -474,9 +474,11 @@ def build(md_path, out_path):
             i += 1
             continue
 
-        # ---- Parrafo normal ----
+        # ---- Parrafo normal (sin sangria de primera linea) ----
         style = "PostHeadPara" if prev_was_head else "Para"
-        add_runs(para(style), stripped)
+        p = para(style)
+        p.paragraph_format.first_line_indent = Pt(0)
+        add_runs(p, stripped)
         prev_was_head = False
         i += 1
 
