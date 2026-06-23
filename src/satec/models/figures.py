@@ -61,7 +61,12 @@ def main(repo: str = ".") -> None:
     import pandas as pd
     res = pd.read_csv(os.path.join(repo, "results", "metricas_modelos.csv"))
     plot_metrics_bar(res, os.path.join(repo, "results", "fig_metricas.png"))
-    plot_generalization_gap(res, os.path.join(repo, "results", "fig_brecha.png"))
+    # La brecha de generalización (exactitud entren. − prueba) es propia de una
+    # partición única; se toma del corte único (≤2019 / 2020–2024), que conserva
+    # train_acc y gap. El origen móvil promedia varios cortes y no los expone.
+    corte = pd.read_csv(
+        os.path.join(repo, "results", "metricas_modelos_corte_unico.csv"))
+    plot_generalization_gap(corte, os.path.join(repo, "results", "fig_brecha.png"))
     print("[OK] figuras en results/")
 
 
