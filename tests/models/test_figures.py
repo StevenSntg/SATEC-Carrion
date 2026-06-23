@@ -29,9 +29,9 @@ def test_metrics_bar_con_seis_modelos(tmp_path):
     assert out.exists()
 
 
-def test_confusiones_rn_y_rf(tmp_path):
+def test_confusiones_gb_y_rn(tmp_path):
     filas = []
-    for m in ["red_neuronal", "random_forest"]:
+    for m in ["gradient_boosting", "red_neuronal"]:
         filas.append({"modelo": m, "tn": 100, "fp": 10, "fn": 5, "tp": 20})
     df = pd.DataFrame(filas)
     out = tmp_path / "c.png"

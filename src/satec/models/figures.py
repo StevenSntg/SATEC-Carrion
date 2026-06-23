@@ -8,8 +8,8 @@ import matplotlib.pyplot as plt
 from satec.models.paper_style import (apply_style, clean_axes, nice_model,
                                       PALETA, BERMELLON)
 
-ORDEN = ["red_neuronal", "random_forest", "gradient_boosting",
-         "arbol_poda8", "arbol_sin_poda", "baseline_persistencia"]
+ORDEN = ["gradient_boosting", "red_neuronal", "arbol_sin_poda",
+         "baseline_persistencia"]
 
 
 def plot_metrics_bar(res_df, out_path):
@@ -61,12 +61,7 @@ def main(repo: str = ".") -> None:
     import pandas as pd
     res = pd.read_csv(os.path.join(repo, "results", "metricas_modelos.csv"))
     plot_metrics_bar(res, os.path.join(repo, "results", "fig_metricas.png"))
-    # La brecha de generalización (exactitud entren. − prueba) es propia de una
-    # partición única; se toma del corte único (≤2019 / 2020–2024), que conserva
-    # train_acc y gap. El origen móvil promedia varios cortes y no los expone.
-    corte = pd.read_csv(
-        os.path.join(repo, "results", "metricas_modelos_corte_unico.csv"))
-    plot_generalization_gap(corte, os.path.join(repo, "results", "fig_brecha.png"))
+    plot_generalization_gap(res, os.path.join(repo, "results", "fig_brecha.png"))
     print("[OK] figuras en results/")
 
 

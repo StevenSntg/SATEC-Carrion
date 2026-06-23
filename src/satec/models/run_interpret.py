@@ -2,7 +2,7 @@
 import os
 import pandas as pd
 from satec.models.rolling_origin import pooled_predictions, _nn_build
-from satec.models.train import (train_random_forest, train_neural_net,
+from satec.models.train import (train_gradient_boosting, train_neural_net,
                                 nn_predict_proba)
 from satec.models.features_matrix import feature_matrix
 from satec.models.interpret import (permutation_importance_ap,
@@ -17,18 +17,18 @@ def main(repo: str = ".") -> None:
     results = os.path.join(repo, "results"); os.makedirs(results, exist_ok=True)
     years = range(2016, 2025)
 
-    rf_pool = pooled_predictions(
-        df, lambda X, y: train_random_forest(X, y),
+    gb_pool = pooled_predictions(
+        df, lambda X, y: train_gradient_boosting(X, y),
         lambda m, X: m.predict_proba(X)[:, 1], years)
     _nn_build.epochs = 60
     rn_pool = pooled_predictions(
         df, _nn_build, lambda mn, X: nn_predict_proba(mn[0], X, mn[1]), years)
 
     curves = {
+        nice_model("gradient_boosting"): calibration_points(
+            gb_pool["y_true"], gb_pool["y_score"], n_bins=10),
         nice_model("red_neuronal"): calibration_points(
             rn_pool["y_true"], rn_pool["y_score"], n_bins=10),
-        nice_model("random_forest"): calibration_points(
-            rf_pool["y_true"], rf_pool["y_score"], n_bins=10),
     }
     plot_calibration(curves, os.path.join(results, "fig_calibracion.png"))
 

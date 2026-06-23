@@ -68,10 +68,6 @@ def rolling_evaluation(df, test_years=range(2016, 2025), nn_epochs=60, beta=1.0)
     especificaciones = {
         "arbol_sin_poda": (lambda X, y: train_decision_tree(X, y, max_depth=None),
                            lambda m, X: m.predict_proba(X)[:, 1]),
-        "arbol_poda8": (lambda X, y: train_decision_tree(X, y, max_depth=8),
-                        lambda m, X: m.predict_proba(X)[:, 1]),
-        "random_forest": (lambda X, y: train_random_forest(X, y),
-                          lambda m, X: m.predict_proba(X)[:, 1]),
         "gradient_boosting": (lambda X, y: train_gradient_boosting(X, y),
                               lambda m, X: m.predict_proba(X)[:, 1]),
     }

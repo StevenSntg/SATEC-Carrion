@@ -21,10 +21,13 @@ def train_random_forest(X, y, n_estimators=300, max_depth=None):
     return clf.fit(X, y)
 
 
-def train_gradient_boosting(X, y, max_iter=300):
+def train_gradient_boosting(X, y, max_iter=500):
+    """Gradient Boosting por histogramas, regularizado (afinado para el panel
+    de Carrión: árboles someros + L2 + hojas grandes reducen el sobreajuste)."""
     clf = HistGradientBoostingClassifier(
-        max_iter=max_iter, class_weight="balanced",
-        learning_rate=0.1, random_state=42)
+        max_iter=max_iter, learning_rate=0.05, max_depth=3,
+        l2_regularization=0.1, min_samples_leaf=50,
+        class_weight="balanced", random_state=42)
     return clf.fit(X, y)
 
 
