@@ -15,18 +15,22 @@ _CMAP = LinearSegmentedColormap.from_list("acmblue", ["#FFFFFF", "#0072B2"])
 
 def plot_confusions(res, out_path):
     apply_style()
-    modelos = ["red_neuronal", "arbol_poda8"]
+    modelos = ["red_neuronal", "random_forest"]
     fig, axes = plt.subplots(1, 2, figsize=(7.4, 3.7))
     for ax, m in zip(axes, modelos):
         r = res[res["modelo"] == m].iloc[0]
         cm = np.array([[int(r["tn"]), int(r["fp"])], [int(r["fn"]), int(r["tp"])]])
         norm = cm / cm.max()
         ax.imshow(norm, cmap=_CMAP, vmin=0, vmax=1)
+        total = cm.sum()
+        etiquetas = [["VN", "FP"], ["FN", "VP"]]
         for i in range(2):
             for j in range(2):
-                ax.text(j, i, format(cm[i, j], ","), ha="center", va="center",
+                pct = 100 * cm[i, j] / total
+                ax.text(j, i, f"{etiquetas[i][j]}\n{cm[i, j]:,}\n{pct:.2f}%",
+                        ha="center", va="center",
                         color="white" if norm[i, j] > 0.55 else "#222222",
-                        fontsize=13, fontweight="bold")
+                        fontsize=11, fontweight="bold")
         ax.set_xticks([0, 1]); ax.set_xticklabels(["No brote", "Brote"])
         ax.set_yticks([0, 1]); ax.set_yticklabels(["No brote", "Brote"])
         ax.set_xlabel("Predicción"); ax.set_ylabel("Observado")

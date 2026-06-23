@@ -2,6 +2,7 @@ import os
 import pandas as pd
 from satec.models.figures import plot_metrics_bar
 from satec.models.paper_style import nice_model
+from satec.models.figures_extra import plot_confusions
 
 
 def test_plot_metrics_bar_crea_png(tmp_path):
@@ -25,4 +26,14 @@ def test_metrics_bar_con_seis_modelos(tmp_path):
     df = pd.DataFrame(filas)
     out = tmp_path / "m.png"
     plot_metrics_bar(df, str(out))
+    assert out.exists()
+
+
+def test_confusiones_rn_y_rf(tmp_path):
+    filas = []
+    for m in ["red_neuronal", "random_forest"]:
+        filas.append({"modelo": m, "tn": 100, "fp": 10, "fn": 5, "tp": 20})
+    df = pd.DataFrame(filas)
+    out = tmp_path / "c.png"
+    plot_confusions(df, str(out))
     assert out.exists()
