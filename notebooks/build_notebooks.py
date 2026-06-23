@@ -1,6 +1,6 @@
 """Genera los notebooks Colab/Jupyter de entrenamiento y prueba de cada modelo.
 
-Crea dos notebooks autocontenidos (no dependen del paquete `satec`): descargan el
+Crea tres notebooks autocontenidos (no dependen del paquete `satec`): descargan el
 panel enriquecido desde GitHub y reproducen el train/test del articulo SATEC.
 
     py -3.12 notebooks/build_notebooks.py
@@ -51,7 +51,8 @@ from sklearn.metrics import (confusion_matrix, accuracy_score, precision_score,
     brier_score_loss)
 
 def evaluar(y_true, y_pred, y_score=None):
-    """Metricas adecuadas a eventos raros (brotes ~8%)."""
+    """Metricas adecuadas a eventos raros (la prevalencia de brotes cae del
+    ~10% (<=2019) al ~0.3% en 2020-2024 por la subnotificacion pandemica)."""
     tn, fp, fn, tp = confusion_matrix(y_true, y_pred, labels=[0, 1]).ravel()
     m = {
         "Exactitud":     accuracy_score(y_true, y_pred),
@@ -171,6 +172,24 @@ Repositorio: <https://github.com/StevenSntg/SATEC-Carrion>"""),
            "métricas centradas en brotes (sensibilidad y AUC-PR), aunque genera más "
            "falsas alarmas. Véase el cuaderno de la **Red Neuronal** para el modelo "
            "con mejor equilibrio global."),
+        md("## 7. Validación de origen móvil (umbral óptimo)\n\n"
+           "Esquema **train ≤ Y−2 / val = Y−1 / test = Y** para cada año Y ∈ 2016–2024. "
+           "El umbral se selecciona sobre la validación maximizando F1."),
+        code('from sklearn.metrics import fbeta_score\n'
+             'import numpy as np\n'
+             'def best_t(yv, sv, beta=1.0):\n'
+             '    if int(np.sum(yv))==0: return 0.5\n'
+             '    cand=np.unique(np.concatenate([[0.0],np.sort(sv),[1.0]]))\n'
+             '    return float(max(cand, key=lambda t: fbeta_score(yv,(sv>=t).astype(int),beta=beta,zero_division=0)))\n'
+             'yt=[];yp=[];ys=[]\n'
+             'for Y in range(2016,2025):\n'
+             '    tr=df[df.anio<=Y-2]; va=df[df.anio==Y-1]; te=df[df.anio==Y]\n'
+             '    if len(tr)==0 or len(te)==0: continue\n'
+             '    Xtr2,ytr2=feature_matrix(tr); clf2=DecisionTreeClassifier(criterion="entropy",max_depth=8,class_weight="balanced",random_state=42).fit(Xtr2,ytr2)\n'
+             '    Xv,yv=feature_matrix(va); t=best_t(yv.to_numpy(),clf2.predict_proba(Xv)[:,1]) if len(va) else 0.5\n'
+             '    Xte2,yte2=feature_matrix(te); s=clf2.predict_proba(Xte2)[:,1]\n'
+             '    yt+=list(yte2);ys+=list(s);yp+=list((s>=t).astype(int))\n'
+             'print("Origen movil — Árbol:", evaluar(np.array(yt),np.array(yp),np.array(ys)))'),
     ]
     return nb
 
@@ -257,13 +276,116 @@ Repositorio: <https://github.com/StevenSntg/SATEC-Carrion>"""),
            "(sensibilidad ≈ 0,81; AUC-PR ≈ 0,745; Brier ≈ 0,012), superando al árbol "
            "y al canal endémico clásico. Los valores exactos pueden variar levemente "
            "según la versión de TensorFlow y el hardware."),
+        md("## 8. Validación de origen móvil (umbral óptimo)\n\n"
+           "Esquema **train ≤ Y−2 / val = Y−1 / test = Y** para cada año Y ∈ 2016–2024. "
+           "El umbral se selecciona sobre la validación maximizando F1."),
+        code('from sklearn.metrics import fbeta_score\n'
+             'import numpy as np\n'
+             'def best_t(yv, sv, beta=1.0):\n'
+             '    if int(np.sum(yv))==0: return 0.5\n'
+             '    cand=np.unique(np.concatenate([[0.0],np.sort(sv),[1.0]]))\n'
+             '    return float(max(cand, key=lambda t: fbeta_score(yv,(sv>=t).astype(int),beta=beta,zero_division=0)))\n'
+             'yt=[];yp=[];ys=[]\n'
+             'for Y in range(2016,2025):\n'
+             '    tr=df[df.anio<=Y-2]; va=df[df.anio==Y-1]; te=df[df.anio==Y]\n'
+             '    if len(tr)==0 or len(te)==0: continue\n'
+             '    Xtr2,ytr2=feature_matrix(tr)\n'
+             '    mn=Xtr2.min().to_numpy(); mx=Xtr2.max().to_numpy(); rng2=np.where((mx-mn)==0,1.0,mx-mn)\n'
+             '    Xtr2n=(Xtr2.to_numpy()-mn)/rng2\n'
+             '    w2=compute_class_weight("balanced",classes=np.array([0,1]),y=ytr2); cw2={0:float(w2[0]),1:float(w2[1])}\n'
+             '    m2=keras.Sequential([layers.Input(shape=(Xtr2n.shape[1],)),layers.Dense(32,activation="relu"),layers.Dense(32,activation="relu"),layers.Dense(1,activation="sigmoid")])\n'
+             '    m2.compile(loss="binary_crossentropy",optimizer="adam"); m2.fit(Xtr2n,ytr2.to_numpy(),epochs=30,batch_size=256,class_weight=cw2,verbose=0)\n'
+             '    Xv,yv=feature_matrix(va); Xvn=(Xv.to_numpy()-mn)/rng2\n'
+             '    sv=m2.predict(Xvn,verbose=0).ravel(); t=best_t(yv.to_numpy(),sv) if len(va) else 0.5\n'
+             '    Xte2,yte2=feature_matrix(te); Xte2n=(Xte2.to_numpy()-mn)/rng2\n'
+             '    s=m2.predict(Xte2n,verbose=0).ravel()\n'
+             '    yt+=list(yte2);ys+=list(s);yp+=list((s>=t).astype(int))\n'
+             'print("Origen movil — Red Neuronal:", evaluar(np.array(yt),np.array(yp),np.array(ys)))'),
+    ]
+    return nb
+
+
+def build_rf():
+    nb = nbf.v4.new_notebook()
+    nb.cells = [
+        md(f"""# SATEC · Random Forest & Gradient Boosting — entrenamiento y prueba
+
+[![Open In Colab]({ 'https://colab.research.google.com/assets/colab-badge.svg' })]({COLAB}/03_random_forest_train_test.ipynb)
+
+**Alerta temprana de brotes de la enfermedad de Carrión.** Este cuaderno entrena
+y evalúa un **Random Forest** y un **Gradient Boosting Histograma** (scikit-learn)
+que predicen, por provincia y con 4 semanas de anticipación, si una zona entrará
+en **estado de brote**. Validación **temporal estricta** (entrenamiento ≤ 2019,
+prueba 2020–2024) y métricas adecuadas a **eventos raros**.
+
+Repositorio: <https://github.com/StevenSntg/SATEC-Carrion>"""),
+        md("## 1. Dependencias y datos"),
+        code('!pip -q install pyarrow 2>/dev/null\n'
+             'import pandas as pd, numpy as np'),
+        code(f'URL = "{RAW}"\n'
+             'df = pd.read_parquet(URL)\n'
+             'print("Panel provincia-semana:", df.shape)\n'
+             'df[["departamento","provincia","anio","semana","casos","q3","brote"]].head()'),
+        md("## 2. Variables de entrada y partición temporal"),
+        code(FEATURES_SRC),
+        code(SPLIT_SRC),
+        md("## 3. Entrenamiento: Random Forest y Gradient Boosting\n\n"
+           "Ambos modelos usan `class_weight=\"balanced\"` para compensar el fuerte "
+           "desbalance de clases (la prevalencia de brotes cae del ~10 % en ≤ 2019 "
+           "al ~0,3 % en 2020–2024 por la subnotificación pandémica)."),
+        code('from sklearn.ensemble import (RandomForestClassifier,\n'
+             '                              HistGradientBoostingClassifier)\n\n'
+             'rf = RandomForestClassifier(n_estimators=300, class_weight="balanced",\n'
+             '                            random_state=42, n_jobs=-1).fit(Xtr, ytr)\n'
+             'gb = HistGradientBoostingClassifier(max_iter=300,\n'
+             '          class_weight="balanced", random_state=42).fit(Xtr, ytr)'),
+        md("## 4. Prueba (test 2020–2024)"),
+        code(METRICS_SRC),
+        code('for nombre, clf in [("Random Forest", rf), ("Gradient Boosting", gb)]:\n'
+             '    score = clf.predict_proba(Xte)[:, 1]\n'
+             '    pred  = clf.predict(Xte)\n'
+             '    m = evaluar(yte, pred, score)\n'
+             '    print(f"\\n=== {nombre} ===")\n'
+             '    for k, v in m.items():\n'
+             '        print(f"  {k:12s}: {v:.3f}" if isinstance(v, float) else f"  {k:12s}: {v}")'),
+        md("## 5. Importancia de variables y matriz de confusión"),
+        code(CONF_PLOT_SRC),
+        code('plot_confusion(yte, rf.predict(Xte), "Random Forest — prueba 2020–2024")'),
+        code('plot_confusion(yte, gb.predict(Xte), "Gradient Boosting — prueba 2020–2024")'),
+        code('# Importancia media de impureza (MDI) del Random Forest.\n'
+             'import matplotlib.pyplot as plt\n'
+             'imp = pd.Series(rf.feature_importances_, index=FEATURE_COLS).sort_values()\n'
+             'imp.tail(12).plot.barh(figsize=(7, 4.5), color="#009E73")\n'
+             'plt.xlabel("Importancia (MDI)"); plt.title("Random Forest — variables")\n'
+             'plt.tight_layout(); plt.show()'),
+        md("## 6. Comparación con el baseline (canal endémico)"),
+        code(BASELINE_SRC),
+        md("## 7. Validación de origen móvil (umbral óptimo)\n\n"
+           "Esquema **train ≤ Y−2 / val = Y−1 / test = Y** para cada año Y ∈ 2016–2024. "
+           "El umbral se selecciona sobre la validación maximizando F1."),
+        code('from sklearn.metrics import fbeta_score, average_precision_score\n'
+             'import numpy as np\n'
+             'def best_t(yv, sv, beta=1.0):\n'
+             '    if int(np.sum(yv))==0: return 0.5\n'
+             '    cand=np.unique(np.concatenate([[0.0],np.sort(sv),[1.0]]))\n'
+             '    return float(max(cand, key=lambda t: fbeta_score(yv,(sv>=t).astype(int),beta=beta,zero_division=0)))\n'
+             'yt=[];yp=[];ys=[]\n'
+             'for Y in range(2016,2025):\n'
+             '    tr=df[df.anio<=Y-2]; va=df[df.anio==Y-1]; te=df[df.anio==Y]\n'
+             '    if len(tr)==0 or len(te)==0: continue\n'
+             '    Xtr2,ytr2=feature_matrix(tr); clf2=RandomForestClassifier(n_estimators=300,class_weight="balanced",random_state=42,n_jobs=-1).fit(Xtr2,ytr2)\n'
+             '    Xv,yv=feature_matrix(va); t=best_t(yv.to_numpy(),clf2.predict_proba(Xv)[:,1]) if len(va) else 0.5\n'
+             '    Xte2,yte2=feature_matrix(te); s=clf2.predict_proba(Xte2)[:,1]\n'
+             '    yt+=list(yte2);ys+=list(s);yp+=list((s>=t).astype(int))\n'
+             'print("Origen movil — RF:", evaluar(np.array(yt),np.array(yp),np.array(ys)))'),
     ]
     return nb
 
 
 def main():
     for nb, name in [(build_arbol(), "01_arbol_decision_train_test.ipynb"),
-                     (build_red(),   "02_red_neuronal_train_test.ipynb")]:
+                     (build_red(),   "02_red_neuronal_train_test.ipynb"),
+                     (build_rf(),    "03_random_forest_train_test.ipynb")]:
         nb.metadata = {
             "language_info": {"name": "python"},
             "kernelspec": {"name": "python3", "display_name": "Python 3"},
