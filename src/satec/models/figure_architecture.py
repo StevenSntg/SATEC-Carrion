@@ -9,17 +9,17 @@ import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.patches import Circle
 
-from satec.models.paper_style import apply_style, AZUL, CELESTE, NARANJA
+from satec.models.paper_style import apply_style, AZUL, CELESTE, NARANJA, t
 
 
-def plot_architecture(out_path):
+def plot_architecture(out_path, lang="es"):
     apply_style()
     # (nodos dibujados, título de capa, subtítulo, color)
     capas = [
-        (6, "Entrada", "24 variables", AZUL),
-        (7, "Oculta 1", "32 · ReLU", CELESTE),
-        (7, "Oculta 2", "32 · ReLU", CELESTE),
-        (1, "Salida", "1 · sigmoide", NARANJA),
+        (6, t("input", lang), t("vars24", lang), AZUL),
+        (7, f"{t('hidden', lang)} 1", "32 · ReLU", CELESTE),
+        (7, f"{t('hidden', lang)} 2", "32 · ReLU", CELESTE),
+        (1, t("output", lang), t("sigmoid", lang), NARANJA),
     ]
     GAP_X = 4.0     # separación horizontal entre capas
     TOP = 6.0       # alto del área de nodos
@@ -54,9 +54,7 @@ def plot_architecture(out_path):
 
     # nota de pie con los detalles de entrenamiento (no saturan el grafo)
     cx = (len(capas) - 1) * GAP_X / 2
-    ax.text(cx, -1.9,
-            "Entrada estandarizada (z-score) · pérdida de entropía cruzada binaria · "
-            "optimizador Adam · ponderación de clases",
+    ax.text(cx, -1.9, t("nn_note", lang),
             ha="center", va="top", fontsize=8.5, color="#555555", style="italic")
 
     ax.set_xlim(-R - 0.7, (len(capas) - 1) * GAP_X + R + 0.7)
@@ -68,10 +66,11 @@ def plot_architecture(out_path):
     plt.close(fig)
 
 
-def main(repo: str = ".") -> None:
+def main(repo: str = ".", lang: str = "es", out=None) -> None:
     import os
-    plot_architecture(os.path.join(repo, "results", "fig_arquitectura.png"))
-    print("[OK] fig_arquitectura.png")
+    out = out or os.path.join(repo, "results", "fig_arquitectura.png")
+    plot_architecture(out, lang)
+    print(f"[OK] {out}")
 
 
 if __name__ == "__main__":

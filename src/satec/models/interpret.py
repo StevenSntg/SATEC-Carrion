@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 from sklearn.metrics import average_precision_score
 from sklearn.calibration import calibration_curve
 
-from satec.models.paper_style import (apply_style, clean_axes, nice_var,
+from satec.models.paper_style import (apply_style, clean_axes, nice_var, t,
                                       AZUL, NARANJA, GRIS)
 
 
@@ -37,14 +37,14 @@ def calibration_points(y_true, y_score, n_bins=10):
     return prob_pred, prob_true
 
 
-def plot_importance(imp_df, out_path, top=12):
+def plot_importance(imp_df, out_path, top=12, lang="es"):
     apply_style()
     sub = imp_df.head(top).iloc[::-1]
     fig, ax = plt.subplots(figsize=(7.2, 4.8))
-    nombres = [nice_var(f) for f in sub["feature"]]
+    nombres = [nice_var(f, lang) for f in sub["feature"]]
     ax.barh(nombres, sub["importance"].to_numpy(dtype=float),
             color=AZUL, edgecolor="white", linewidth=0.5)
-    ax.set_xlabel("Caída en AUC-PR al permutar la variable")
+    ax.set_xlabel(t("aucpr_drop", lang))
     clean_axes(ax, grid_axis="x")
     ax.tick_params(length=0)
     fig.tight_layout()
@@ -52,17 +52,17 @@ def plot_importance(imp_df, out_path, top=12):
     plt.close(fig)
 
 
-def plot_calibration(curves, out_path):
+def plot_calibration(curves, out_path, lang="es"):
     apply_style()
     fig, ax = plt.subplots(figsize=(5.6, 5.4))
     ax.plot([0, 1], [0, 1], "--", color=GRIS, linewidth=1.2,
-            label="Calibración perfecta")
+            label=t("perfect_calib", lang))
     colores = [AZUL, NARANJA]
     for (nombre, (pp, pt)), col in zip(curves.items(), colores):
         ax.plot(pp, pt, "o-", color=col, markersize=5, linewidth=1.6,
                 label=nombre)
-    ax.set_xlabel("Probabilidad predicha")
-    ax.set_ylabel("Frecuencia observada de brote")
+    ax.set_xlabel(t("pred_prob", lang))
+    ax.set_ylabel(t("obs_freq", lang))
     ax.set_xlim(-0.02, 1.02); ax.set_ylim(-0.02, 1.02)
     ax.set_aspect("equal")
     ax.legend(frameon=False, loc="upper left")

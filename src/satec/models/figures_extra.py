@@ -7,13 +7,13 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 from matplotlib.colors import LinearSegmentedColormap
 
-from satec.models.paper_style import apply_style, clean_axes, nice_model, PALETA
+from satec.models.paper_style import apply_style, clean_axes, nice_model, t, PALETA
 
 # Mapa de color sobrio (blanco -> azul ACM) para las matrices de confusion.
 _CMAP = LinearSegmentedColormap.from_list("acmblue", ["#FFFFFF", "#0072B2"])
 
 
-def plot_confusions(res, out_path):
+def plot_confusions(res, out_path, lang="es"):
     apply_style()
     modelos = ["red_neuronal", "arbol_poda8"]
     fig, axes = plt.subplots(1, 2, figsize=(7.4, 3.7))
@@ -23,7 +23,7 @@ def plot_confusions(res, out_path):
         norm = cm / cm.max()
         ax.imshow(norm, cmap=_CMAP, vmin=0, vmax=1)
         total = cm.sum()
-        etiquetas = [["VN", "FP"], ["FN", "VP"]]
+        etiquetas = [[t("TN", lang), t("FP", lang)], [t("FN", lang), t("TP", lang)]]
         for i in range(2):
             for j in range(2):
                 pct = 100 * cm[i, j] / total
@@ -31,10 +31,10 @@ def plot_confusions(res, out_path):
                         ha="center", va="center",
                         color="white" if norm[i, j] > 0.55 else "#222222",
                         fontsize=11, fontweight="bold")
-        ax.set_xticks([0, 1]); ax.set_xticklabels(["No brote", "Brote"])
-        ax.set_yticks([0, 1]); ax.set_yticklabels(["No brote", "Brote"])
-        ax.set_xlabel("Predicción"); ax.set_ylabel("Observado")
-        ax.set_title(nice_model(m), pad=8)
+        ax.set_xticks([0, 1]); ax.set_xticklabels([t("no_outbreak", lang), t("outbreak", lang)])
+        ax.set_yticks([0, 1]); ax.set_yticklabels([t("no_outbreak", lang), t("outbreak", lang)])
+        ax.set_xlabel(t("prediction", lang)); ax.set_ylabel(t("observed", lang))
+        ax.set_title(nice_model(m, lang), pad=8)
         for s in ax.spines.values():
             s.set_visible(False)
         ax.tick_params(length=0)

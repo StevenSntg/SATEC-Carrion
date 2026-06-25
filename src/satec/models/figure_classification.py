@@ -11,23 +11,19 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from sklearn.metrics import classification_report
 
-from satec.models.paper_style import apply_style, AZUL, GRIS
+from satec.models.paper_style import apply_style, AZUL, nice_model, t
 
-MODELOS = [("red_neuronal", "Red Neuronal"),
-           ("arbol_poda8", "Árbol (poda 8)"),
-           ("arbol_sin_poda", "Árbol (sin poda)")]
-COLS = ["Precisión", "Sensibilidad", "F1", "Soporte"]
-FILAS = ["No brote", "Brote", "Exactitud", "Promedio macro", "Promedio ponderado"]
+MODELOS = ["red_neuronal", "arbol_poda8", "arbol_sin_poda"]
 
 
 def _miles(n):
-    return f"{int(n):,}".replace(",", " ")  # separador fino de miles
+    return f"{int(n):,}".replace(",", " ")  # separador fino de miles
 
 
 def _rows(tn, fp, fn, tp):
     y_true = [0] * (tn + fp) + [1] * (fn + tp)
     y_pred = [0] * tn + [1] * fp + [0] * fn + [1] * tp
-    d = classification_report(y_true, y_pred, target_names=["No brote", "Brote"],
+    d = classification_report(y_true, y_pred, target_names=["neg", "pos"],
                               output_dict=True, zero_division=0)
 
     def f(b):
@@ -35,23 +31,26 @@ def _rows(tn, fp, fn, tp):
                 f"{b['f1-score']:.2f}", _miles(b["support"])]
     tot = _miles(d["macro avg"]["support"])
     return [
-        f(d["No brote"]),
-        f(d["Brote"]),
+        f(d["neg"]),
+        f(d["pos"]),
         ["", "", f"{d['accuracy']:.2f}", tot],
         f(d["macro avg"]),
         f(d["weighted avg"]),
     ]
 
 
-def plot_classification(out_path, repo: str = "."):
+def plot_classification(out_path, repo: str = ".", lang="es"):
     apply_style()
     df = pd.read_csv(os.path.join(repo, "results", "metricas_modelos.csv")
                      ).set_index("modelo")
+    cols = [t("precision", lang), t("recall", lang), t("f1", lang), t("support", lang)]
+    filas = [t("no_outbreak", lang), t("outbreak", lang), t("accuracy", lang),
+             t("macro_avg", lang), t("weighted_avg", lang)]
     fig, axes = plt.subplots(len(MODELOS), 1, figsize=(7.4, 7.0))
-    for ax, (k, nom) in zip(axes, MODELOS):
+    for ax, k in zip(axes, MODELOS):
         r = df.loc[k]
         rows = _rows(int(r.tn), int(r.fp), int(r.fn), int(r.tp))
-        tab = ax.table(cellText=rows, rowLabels=FILAS, colLabels=COLS,
+        tab = ax.table(cellText=rows, rowLabels=filas, colLabels=cols,
                        cellLoc="center", rowLoc="right", loc="center",
                        colWidths=[0.17, 0.20, 0.13, 0.15])
         tab.auto_set_font_size(False)
@@ -73,10 +72,10 @@ def plot_classification(out_path, repo: str = "."):
                 cell.set_facecolor("#FBFCFD")
             else:
                 cell.set_facecolor("#FFFFFF")
-        # resaltar también la etiqueta de fila «Brote»
         tab[2, -1].set_facecolor(AZUL + "26")
         tab[2, -1].set_text_props(fontweight="bold", ha="right", color="#1A1A1A")
-        ax.set_title(f"{nom}  ·  prueba 2020–2024  ·  umbral {r.umbral:.2f}",
+        ax.set_title(f"{nice_model(k, lang)}  ·  {t('test', lang)} 2020–2024  ·  "
+                     f"{t('threshold', lang)} {r.umbral:.2f}",
                      loc="left", fontsize=10.5, fontweight="bold", pad=10)
         ax.axis("off")
     fig.tight_layout(h_pad=2.2)
@@ -84,9 +83,10 @@ def plot_classification(out_path, repo: str = "."):
     plt.close(fig)
 
 
-def main(repo: str = ".") -> None:
-    plot_classification(os.path.join(repo, "results", "fig_classification.png"), repo)
-    print("[OK] fig_classification.png")
+def main(repo: str = ".", lang: str = "es", out=None) -> None:
+    out = out or os.path.join(repo, "results", "fig_classification.png")
+    plot_classification(out, repo, lang)
+    print(f"[OK] {out}")
 
 
 if __name__ == "__main__":

@@ -91,9 +91,89 @@ def clean_axes(ax, grid_axis="y"):
     ax.grid(axis="y" if grid_axis == "x" else "x", visible=False)
 
 
-def nice_model(name):
-    return MODELOS.get(name, name)
+# --- Versiones en inglés (para el paper en inglés) ---
+MODELOS_EN = {
+    "red_neuronal": "Neural Network",
+    "arbol_poda8": "Tree (depth 8)",
+    "arbol_sin_poda": "Tree (unpruned)",
+    "baseline_persistencia": "Endemic channel",
+}
+
+VARIABLES_EN = {
+    "roll_mean8": "Cases · 8-week MA",
+    "roll_mean4": "Cases · 4-week MA",
+    "casos": "Cases · current week",
+    "casos_lag1": "Cases · t−1",
+    "casos_lag2": "Cases · t−2",
+    "casos_lag4": "Cases · t−4",
+    "tasa": "Rate per 100,000 inhab.",
+    "temp": "Temperature",
+    "temp_roll4": "Temperature · 4-week MA",
+    "temp_roll8": "Temperature · 8-week MA",
+    "temp_lag4": "Temperature · t−4",
+    "temp_lag8": "Temperature · t−8",
+    "hum": "Relative humidity",
+    "hum_roll4": "Humidity · 4-week MA",
+    "hum_roll8": "Humidity · 8-week MA",
+    "hum_lag4": "Humidity · t−4",
+    "hum_lag8": "Humidity · t−8",
+    "prec": "Precipitation",
+    "prec_roll4": "Precipitation · 4-week MA",
+    "prec_roll8": "Precipitation · 8-week MA",
+    "prec_lag4": "Precipitation · t−4",
+    "prec_lag8": "Precipitation · t−8",
+    "sin_semana": "Seasonality · sin",
+    "cos_semana": "Seasonality · cos",
+}
+
+# Cadenas comunes de las figuras, por idioma.
+TXT = {
+    "es": {
+        "metric_value": "Valor de la métrica", "no_outbreak": "No brote",
+        "outbreak": "Brote", "prediction": "Predicción", "observed": "Observado",
+        "pred_prob": "Probabilidad predicha",
+        "obs_freq": "Frecuencia observada de brote",
+        "perfect_calib": "Calibración perfecta",
+        "aucpr_drop": "Caída en AUC-PR al permutar la variable",
+        "precision": "Precisión", "recall": "Sensibilidad", "f1": "F1",
+        "support": "Soporte", "accuracy": "Exactitud",
+        "macro_avg": "Promedio macro", "weighted_avg": "Promedio ponderado",
+        "test": "prueba", "threshold": "umbral",
+        "input": "Entrada", "hidden": "Oculta", "output": "Salida",
+        "vars24": "24 variables", "sigmoid": "1 · sigmoide",
+        "nn_note": ("Entrada estandarizada (z-score) · pérdida de entropía cruzada "
+                    "binaria · optimizador Adam · ponderación de clases"),
+        "TN": "VN", "FP": "FP", "FN": "FN", "TP": "VP",
+    },
+    "en": {
+        "metric_value": "Metric value", "no_outbreak": "No outbreak",
+        "outbreak": "Outbreak", "prediction": "Prediction", "observed": "Observed",
+        "pred_prob": "Predicted probability",
+        "obs_freq": "Observed outbreak frequency",
+        "perfect_calib": "Perfect calibration",
+        "aucpr_drop": "AUC-PR drop when permuting the variable",
+        "precision": "Precision", "recall": "Recall", "f1": "F1",
+        "support": "Support", "accuracy": "Accuracy",
+        "macro_avg": "Macro avg", "weighted_avg": "Weighted avg",
+        "test": "test", "threshold": "threshold",
+        "input": "Input", "hidden": "Hidden", "output": "Output",
+        "vars24": "24 variables", "sigmoid": "1 · sigmoid",
+        "nn_note": ("Standardized input (z-score) · binary cross-entropy loss · "
+                    "Adam optimizer · class weighting"),
+        "TN": "TN", "FP": "FP", "FN": "FN", "TP": "TP",
+    },
+}
 
 
-def nice_var(name):
-    return VARIABLES.get(name, name)
+def t(key, lang="es"):
+    return TXT.get(lang, TXT["es"]).get(key, key)
+
+
+def nice_model(name, lang="es"):
+    d = MODELOS_EN if lang == "en" else MODELOS
+    return d.get(name, name)
+
+
+def nice_var(name, lang="es"):
+    d = VARIABLES_EN if lang == "en" else VARIABLES
+    return d.get(name, name)

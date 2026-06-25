@@ -11,10 +11,11 @@ from satec.models.interpret import (permutation_importance_ap,
 from satec.models.paper_style import nice_model
 
 
-def main(repo: str = ".") -> None:
+def main(repo: str = ".", lang: str = "es", outdir=None) -> None:
     df = pd.read_parquet(
         os.path.join(repo, "data/processed/dataset_enriched.parquet"))
-    results = os.path.join(repo, "results"); os.makedirs(results, exist_ok=True)
+    outdir = outdir or os.path.join(repo, "results")
+    os.makedirs(outdir, exist_ok=True)
     years = range(2016, 2025)
 
     ad8_pool = pooled_predictions(
@@ -25,21 +26,26 @@ def main(repo: str = ".") -> None:
         df, _nn_build, lambda mn, X: nn_predict_proba(mn[0], X, mn[1]), years)
 
     curves = {
-        nice_model("red_neuronal"): calibration_points(
+        nice_model("red_neuronal", lang): calibration_points(
             rn_pool["y_true"], rn_pool["y_score"], n_bins=10),
-        nice_model("arbol_poda8"): calibration_points(
+        nice_model("arbol_poda8", lang): calibration_points(
             ad8_pool["y_true"], ad8_pool["y_score"], n_bins=10),
     }
-    plot_calibration(curves, os.path.join(results, "fig_calibracion.png"))
+    plot_calibration(curves, os.path.join(outdir, "fig_calibracion.png"), lang=lang)
 
-    # Importancia por permutación de la RN entrenada con todo el histórico.
-    Xall, yall = feature_matrix(df[df["anio"] <= 2024])
-    model, norm = train_neural_net(Xall, yall, epochs=60)
-    imp = permutation_importance_ap(
-        lambda X: nn_predict_proba(model, X, norm), Xall, yall, n_repeats=5)
-    imp.to_csv(os.path.join(results, "importancia_variables.csv"), index=False)
-    plot_importance(imp, os.path.join(results, "fig_importancia.png"))
-    print("[OK] fig_calibracion.png · fig_importancia.png")
+    # La importancia por permutacion es determinista (semilla fija): si ya existe
+    # el CSV en results/, se reutiliza para no reentrenar la red.
+    csv_imp = os.path.join(repo, "results", "importancia_variables.csv")
+    if os.path.exists(csv_imp):
+        imp = pd.read_csv(csv_imp)
+    else:
+        Xall, yall = feature_matrix(df[df["anio"] <= 2024])
+        model, norm = train_neural_net(Xall, yall, epochs=60)
+        imp = permutation_importance_ap(
+            lambda X: nn_predict_proba(model, X, norm), Xall, yall, n_repeats=5)
+        imp.to_csv(os.path.join(outdir, "importancia_variables.csv"), index=False)
+    plot_importance(imp, os.path.join(outdir, "fig_importancia.png"), lang=lang)
+    print(f"[OK] {outdir}: fig_calibracion.png, fig_importancia.png")
 
 
 if __name__ == "__main__":

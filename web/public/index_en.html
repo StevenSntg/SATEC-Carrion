@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SATEC · Early warning of Carrión's disease</title>
+  <meta name="description" content="Outbreak risk map of Carrión's disease by province of Peru, estimated with a neural network and a decision tree over MINSA surveillance and climate data." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet" />
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='1' x2='0' y2='0'%3E%3Cstop offset='0' stop-color='%2326c281'/%3E%3Cstop offset='.55' stop-color='%23f0a91b'/%3E%3Cstop offset='1' stop-color='%23ee4d3a'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect x='11' y='3' width='10' height='26' rx='5' fill='url(%23g)'/%3E%3C/svg%3E" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header class="site-header">
+    <div class="brand">
+      <span class="brand-mark" aria-hidden="true"></span>
+      <div>
+        <h1 class="brand-name">SATEC</h1>
+        <p class="brand-full">Early-Warning System for Carrión's Disease</p>
+      </div>
+    </div>
+    <p class="brand-tagline">
+      Outbreak risk by province for the next <b>4 weeks</b>, estimated with a neural
+      network over 25 years of MINSA surveillance, climate and population.
+    </p>
+    <dl class="stat-strip" id="stat-strip" aria-label="Current status summary">
+      <div class="stat"><dt>Endemic provinces</dt><dd id="stat-total">61</dd></div>
+      <div class="stat"><dt>On high or medium alert</dt><dd id="stat-alerta">—</dd></div>
+      <div class="stat"><dt>Lead time</dt><dd>4 wks</dd></div>
+      <div class="stat"><dt>Best model (F1)</dt><dd>Neural network · 0.70</dd></div>
+    </dl>
+  </header>
+
+  <main class="layout">
+    <section class="map-panel" aria-label="Peru risk map">
+      <div id="map"></div>
+      <div class="map-overlay">
+        <span class="overlay-eyebrow">Endemic channel · ML</span>
+        <h2 class="overlay-title">Alert level</h2>
+        <ul class="legend">
+          <li><span class="dot dot-alto"></span> High <span class="legend-rng">≥ 66%</span></li>
+          <li><span class="dot dot-medio"></span> Medium <span class="legend-rng">33 – 66%</span></li>
+          <li><span class="dot dot-bajo"></span> Low <span class="legend-rng">&lt; 33%</span></li>
+          <li><span class="dot dot-na"></span> No data</li>
+        </ul>
+      </div>
+    </section>
+
+    <aside class="detail-panel" aria-live="polite">
+      <div class="detail-intro" id="detail-intro">
+        <span class="detail-eyebrow">Most recent week status</span>
+        <ul class="level-summary" id="level-summary">
+          <li class="lvl lvl-alto"><span class="lvl-count" id="count-alto">—</span><span class="lvl-name">High</span></li>
+          <li class="lvl lvl-medio"><span class="lvl-count" id="count-medio">—</span><span class="lvl-name">Medium</span></li>
+          <li class="lvl lvl-bajo"><span class="lvl-count" id="count-bajo">—</span><span class="lvl-name">Low</span></li>
+        </ul>
+        <p class="detail-hint" id="detail-hint">
+          Hover or tap a province on the map to see its <b>outbreak probability</b>
+          and each model's prediction.
+        </p>
+      </div>
+
+      <div class="detail-card" id="detail-card" hidden>
+        <span class="detail-eyebrow" id="detail-depto">Department</span>
+        <h3 class="detail-prov" id="detail-prov">Province</h3>
+        <span class="nivel-badge" id="detail-nivel">level</span>
+
+        <div class="prob-block">
+          <div class="prob-head">
+            <span class="prob-label">Neural network · outbreak probability</span>
+            <span class="prob-value" id="detail-rn">0%</span>
+          </div>
+          <div class="prob-track" role="img" id="prob-track" aria-label="Outbreak probability">
+            <span class="prob-zone prob-zone-bajo"></span>
+            <span class="prob-zone prob-zone-medio"></span>
+            <span class="prob-zone prob-zone-alto"></span>
+            <span class="prob-fill" id="prob-fill"></span>
+            <span class="prob-marker" id="prob-marker"></span>
+          </div>
+        </div>
+
+        <dl class="detail-grid">
+          <div class="detail-row">
+            <dt>Decision tree</dt>
+            <dd><span class="pred-chip" id="detail-ad">no outbreak</span></dd>
+          </div>
+          <div class="detail-row">
+            <dt>Cases (last week)</dt>
+            <dd id="detail-casos">0</dd>
+          </div>
+        </dl>
+        <p class="detail-note">
+          The network returns a continuous <b>probability</b>; the tree, a binary
+          <b>decision</b>. When they differ, it is worth looking at both alongside the
+          reported cases.
+        </p>
+      </div>
+    </aside>
+  </main>
+
+  <section class="models" aria-label="Model comparison">
+    <div class="models-head">
+      <span class="eyebrow">Strict temporal validation · trained ≤ 2018 · threshold on 2019 · test 2020–2024</span>
+      <h2>Neural network versus the decision tree</h2>
+      <p>
+        On new data, the <b>neural network</b> achieves the best balance. The <b>pruned</b>
+        tree follows closely; the same tree <b>unpruned</b> memorizes the past and collapses
+        in AUC-PR, the signature of overfitting.
+      </p>
+    </div>
+
+    <div class="metrics-chart" role="table" aria-label="Metrics by model (test 2020–2024)">
+      <div class="chart-legend" role="presentation">
+        <span class="key key-rn">Neural network</span>
+        <span class="key key-ap">Tree (depth 8)</span>
+        <span class="key key-as">Tree (unpruned)</span>
+        <span class="key key-cn">Endemic channel</span>
+      </div>
+
+      <div class="metric-group" role="row">
+        <div class="metric-head"><h3>F1</h3><p>recall-precision balance</p></div>
+        <div class="bars">
+          <div class="bar-row m-rn"><span class="bar-name">Neural network</span><div class="bar-track"><span class="bar-fill" style="--v:.70"></span></div><span class="bar-val">0.70</span></div>
+          <div class="bar-row m-ap"><span class="bar-name">Tree (depth 8)</span><div class="bar-track"><span class="bar-fill" style="--v:.60"></span></div><span class="bar-val">0.60</span></div>
+          <div class="bar-row m-as"><span class="bar-name">Tree (unpruned)</span><div class="bar-track"><span class="bar-fill" style="--v:.22"></span></div><span class="bar-val">0.22</span></div>
+          <div class="bar-row m-cn"><span class="bar-name">Endemic channel</span><div class="bar-track"><span class="bar-fill" style="--v:.40"></span></div><span class="bar-val">0.40</span></div>
+        </div>
+      </div>
+
+      <div class="metric-group" role="row">
+        <div class="metric-head"><h3>Recall</h3><p>outbreaks detected</p></div>
+        <div class="bars">
+          <div class="bar-row m-rn"><span class="bar-name">Neural network</span><div class="bar-track"><span class="bar-fill" style="--v:.67"></span></div><span class="bar-val">0.67</span></div>
+          <div class="bar-row m-ap"><span class="bar-name">Tree (depth 8)</span><div class="bar-track"><span class="bar-fill" style="--v:.67"></span></div><span class="bar-val">0.67</span></div>
+          <div class="bar-row m-as"><span class="bar-name">Tree (unpruned)</span><div class="bar-track"><span class="bar-fill" style="--v:.55"></span></div><span class="bar-val">0.55</span></div>
+          <div class="bar-row m-cn"><span class="bar-name">Endemic channel</span><div class="bar-track"><span class="bar-fill" style="--v:.64"></span></div><span class="bar-val">0.64</span></div>
+        </div>
+      </div>
+
+      <div class="metric-group" role="row">
+        <div class="metric-head"><h3>AUC-PR</h3><p>discrimination on rare events</p></div>
+        <div class="bars">
+          <div class="bar-row m-rn"><span class="bar-name">Neural network</span><div class="bar-track"><span class="bar-fill" style="--v:.71"></span></div><span class="bar-val">0.71</span></div>
+          <div class="bar-row m-ap"><span class="bar-name">Tree (depth 8)</span><div class="bar-track"><span class="bar-fill" style="--v:.63"></span></div><span class="bar-val">0.63</span></div>
+          <div class="bar-row m-as"><span class="bar-name">Tree (unpruned)</span><div class="bar-track"><span class="bar-fill" style="--v:.07"></span></div><span class="bar-val">0.07</span></div>
+          <div class="bar-row m-cn"><span class="bar-name">Endemic channel</span><div class="bar-track"><span class="bar-fill bar-na"></span></div><span class="bar-val">n/a</span></div>
+        </div>
+      </div>
+    </div>
+
+    <p class="models-takeaway">
+      <b>Pruning the tree triples its F1</b> (0.22 → 0.60) and multiplies its AUC-PR ninefold:
+      limiting complexity is decisive for detecting the rare class. Even so, the neural network
+      keeps the edge, and both outperform the classical endemic channel that guides surveillance today.
+    </p>
+  </section>
+
+  <footer class="site-footer">
+    <p class="disclaimer">
+      Decision-support tool for epidemiological surveillance. <strong>It does not replace
+      clinical diagnosis or laboratory confirmation.</strong>
+    </p>
+    <p class="sources">
+      Data: MINSA (surveillance 2000–2024), NASA POWER (climate), INEI (population).
+      Basemap: OpenStreetMap and CARTO. National Technological University of Lima Sur (UNTELS).
+    </p>
+  </footer>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+  <script src="app_en.js"></script>
+</body>
+</html>
