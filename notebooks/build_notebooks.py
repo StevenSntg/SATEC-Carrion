@@ -35,15 +35,33 @@ def feature_matrix(d):
     return X, y'''
 
 SPLIT_SRC = '''\
-# Validacion TEMPORAL estricta: se entrena con <= 2019 y se prueba con 2020-2024.
-# No se mezclan anios entre particiones (evita fuga de informacion temporal).
-train = df[df["anio"] <= 2019].reset_index(drop=True)
+# Validacion TEMPORAL estricta (igual que el articulo): se entrena con <= 2018,
+# el UMBRAL de decision se elige en el anio de validacion 2019 y se prueba con
+# 2020-2024. No se mezclan anios entre particiones (evita fuga temporal).
+train = df[df["anio"] <= 2018].reset_index(drop=True)
+val   = df[df["anio"] == 2019].reset_index(drop=True)
 test  = df[df["anio"] >  2019].reset_index(drop=True)
 Xtr, ytr = feature_matrix(train)
+Xv,  yv  = feature_matrix(val)
 Xte, yte = feature_matrix(test)
 print("Entrenamiento:", Xtr.shape, "| brotes:", int(ytr.sum()))
+print("Validacion   :", Xv.shape,  "| brotes:", int(yv.sum()))
 print("Prueba       :", Xte.shape, "| brotes:", int(yte.sum()),
       f"({100*yte.mean():.1f}% de la clase positiva)")'''
+
+THRESHOLD_SRC = '''\
+from sklearn.metrics import fbeta_score
+import numpy as np
+
+def mejor_umbral(yv, sv, beta=1.0):
+    """Umbral que maximiza F-beta en VALIDACION (sin tocar la prueba). En
+    problemas muy desbalanceados, 0.5 es suboptimo; este es el umbral que usa el
+    articulo, por lo que el classification_report coincide con la Tabla 1."""
+    if int(np.sum(yv)) == 0:
+        return 0.5
+    cand = np.unique(np.concatenate([[0.0], np.sort(sv), [1.0]]))
+    return float(max(cand, key=lambda t: fbeta_score(
+        yv, (sv >= t).astype(int), beta=beta, zero_division=0)))'''
 
 METRICS_SRC = '''\
 from sklearn.metrics import (confusion_matrix, accuracy_score, precision_score,
@@ -112,8 +130,8 @@ def build_arbol():
 **Alerta temprana de brotes de la enfermedad de Carrión.** Este cuaderno entrena
 y evalúa un **Árbol de Decisión** (scikit-learn) que predice, por provincia y con
 4 semanas de anticipación, si una zona entrará en **estado de brote** según el
-canal endémico. Validación **temporal estricta** (entrenamiento ≤ 2019, prueba
-2020–2024) y métricas adecuadas a **eventos raros**.
+canal endémico. Validación **temporal estricta** (entrenamiento ≤ 2018, umbral en
+2019, prueba 2020–2024) y métricas adecuadas a **eventos raros**.
 
 Repositorio: <https://github.com/StevenSntg/SATEC-Carrion>"""),
         md("## 1. Dependencias y datos"),
@@ -140,17 +158,23 @@ Repositorio: <https://github.com/StevenSntg/SATEC-Carrion>"""),
              'arbol_sin_poda.fit(Xtr, ytr)\n'
              'print("Profundidad podado:", arbol.get_depth(),\n'
              '      "| sin poda:", arbol_sin_poda.get_depth())'),
-        md("## 4. Prueba (test 2020–2024)"),
+        md("## 4. Prueba (test 2020–2024, con umbral óptimo)\n\n"
+           "El umbral de decisión se elige en **validación (2019)** maximizando F1, "
+           "no en 0,5. Con ese umbral el `classification_report` coincide con la "
+           "Tabla 1 del artículo (clase **Brote**: F1 0,60 podado, 0,22 sin poda)."),
         code(METRICS_SRC),
-        code('for nombre, clf in [("Árbol (poda 8)", arbol), ("Árbol (sin poda)", arbol_sin_poda)]:\n'
+        code(THRESHOLD_SRC),
+        code('from sklearn.metrics import classification_report\n\n'
+             'for nombre, clf in [("Árbol (poda 8)", arbol), ("Árbol (sin poda)", arbol_sin_poda)]:\n'
+             '    t     = mejor_umbral(yv.to_numpy(), clf.predict_proba(Xv)[:, 1])  # umbral en validacion 2019\n'
              '    score = clf.predict_proba(Xte)[:, 1]\n'
-             '    pred  = clf.predict(Xte)\n'
+             '    pred  = (score >= t).astype(int)                  # umbral optimo, NO 0.5\n'
              '    train_acc = (clf.predict(Xtr) == ytr.to_numpy()).mean()\n'
+             '    print(f"\\n=== {nombre}  |  umbral = {t:.2f} ===")\n'
+             '    print(classification_report(yte, pred, target_names=["No brote", "Brote"]))\n'
              '    m = evaluar(yte, pred, score)\n'
-             '    print(f"\\n=== {nombre} ===")\n'
-             '    for k, v in m.items():\n'
-             '        print(f"  {k:12s}: {v:.3f}" if isinstance(v, float) else f"  {k:12s}: {v}")\n'
-             '    print(f"  Exactitud entren.: {train_acc:.3f}  (brecha = {train_acc - m[\'Exactitud\']:+.3f})")'),
+             '    print({k: round(v, 3) if isinstance(v, float) else v for k, v in m.items()})\n'
+             '    print(f"Exactitud entrenamiento: {train_acc:.3f}")'),
         md("> El árbol **sin poda** memoriza el entrenamiento (exactitud ≈ 0,999) y se "
            "desploma en AUC-PR sobre datos nuevos: la firma del **sobreajuste**. El "
            "árbol **podado** generaliza mucho mejor."),
@@ -175,18 +199,12 @@ Repositorio: <https://github.com/StevenSntg/SATEC-Carrion>"""),
         md("## 7. Validación de origen móvil (umbral óptimo)\n\n"
            "Esquema **train ≤ Y−2 / val = Y−1 / test = Y** para cada año Y ∈ 2016–2024. "
            "El umbral se selecciona sobre la validación maximizando F1."),
-        code('from sklearn.metrics import fbeta_score\n'
-             'import numpy as np\n'
-             'def best_t(yv, sv, beta=1.0):\n'
-             '    if int(np.sum(yv))==0: return 0.5\n'
-             '    cand=np.unique(np.concatenate([[0.0],np.sort(sv),[1.0]]))\n'
-             '    return float(max(cand, key=lambda t: fbeta_score(yv,(sv>=t).astype(int),beta=beta,zero_division=0)))\n'
-             'yt=[];yp=[];ys=[]\n'
+        code('yt=[];yp=[];ys=[]\n'
              'for Y in range(2016,2025):\n'
              '    tr=df[df.anio<=Y-2]; va=df[df.anio==Y-1]; te=df[df.anio==Y]\n'
              '    if len(tr)==0 or len(te)==0: continue\n'
              '    Xtr2,ytr2=feature_matrix(tr); clf2=DecisionTreeClassifier(criterion="entropy",max_depth=8,class_weight="balanced",random_state=42).fit(Xtr2,ytr2)\n'
-             '    Xv,yv=feature_matrix(va); t=best_t(yv.to_numpy(),clf2.predict_proba(Xv)[:,1]) if len(va) else 0.5\n'
+             '    Xva,yva=feature_matrix(va); t=mejor_umbral(yva.to_numpy(),clf2.predict_proba(Xva)[:,1]) if len(va) else 0.5\n'
              '    Xte2,yte2=feature_matrix(te); s=clf2.predict_proba(Xte2)[:,1]\n'
              '    yt+=list(yte2);ys+=list(s);yp+=list((s>=t).astype(int))\n'
              'print("Origen movil — Árbol:", evaluar(np.array(yt),np.array(yp),np.array(ys)))'),
@@ -204,8 +222,8 @@ def build_red():
 **Alerta temprana de brotes de la enfermedad de Carrión.** Este cuaderno entrena
 y evalúa una **Red Neuronal** prealimentada (Keras/TensorFlow) con arquitectura
 **24 → 32 → 32 → 1**, activaciones ReLU y salida sigmoide, optimizador Adam y
-entropía cruzada binaria. Validación **temporal estricta** (entrenamiento ≤ 2019,
-prueba 2020–2024).
+entropía cruzada binaria. Validación **temporal estricta** (entrenamiento ≤ 2018,
+umbral en 2019, prueba 2020–2024).
 
 Repositorio: <https://github.com/StevenSntg/SATEC-Carrion>"""),
         md("## 1. Dependencias y datos"),
@@ -230,6 +248,7 @@ Repositorio: <https://github.com/StevenSntg/SATEC-Carrion>"""),
         code('mu = Xtr.mean().to_numpy(); sd = Xtr.std().to_numpy()\n'
              'sd = np.where(sd == 0, 1.0, sd)\n'
              'Xtr_n = (Xtr.to_numpy() - mu) / sd\n'
+             'Xv_n  = (Xv.to_numpy()  - mu) / sd\n'
              'Xte_n = (Xte.to_numpy() - mu) / sd'),
         md("## 4. Definición y entrenamiento de la red\n\n"
            "Se ponderan las clases (`class_weight`) para que la clase minoritaria "
@@ -252,12 +271,20 @@ Repositorio: <https://github.com/StevenSntg/SATEC-Carrion>"""),
              'plt.plot(hist.history["loss"], color="#0072B2")\n'
              'plt.xlabel("Época"); plt.ylabel("Pérdida (entropía cruzada)")\n'
              'plt.title("Curva de entrenamiento"); plt.tight_layout(); plt.show()'),
-        md("## 5. Prueba (test 2020–2024)"),
+        md("## 5. Prueba (test 2020–2024, con umbral óptimo)\n\n"
+           "El umbral se elige en **validación (2019)** maximizando F1, no en 0,5. "
+           "Con ese umbral el `classification_report` coincide con la Tabla 1 del "
+           "artículo (clase **Brote**: F1 0,70)."),
         code(METRICS_SRC),
-        code('score = model.predict(Xte_n, verbose=0).ravel()\n'
-             'pred  = (score >= 0.5).astype(int)\n'
+        code(THRESHOLD_SRC),
+        code('from sklearn.metrics import classification_report\n'
+             'sv    = model.predict(Xv_n, verbose=0).ravel()\n'
+             't     = mejor_umbral(yv.to_numpy(), sv)          # umbral en validacion 2019\n'
+             'score = model.predict(Xte_n, verbose=0).ravel()\n'
+             'pred  = (score >= t).astype(int)                 # umbral optimo, NO 0.5\n'
+             'print(f"=== Red Neuronal — prueba 2020-2024  |  umbral = {t:.2f} ===")\n'
+             'print(classification_report(yte, pred, target_names=["No brote", "Brote"]))\n'
              'm = evaluar(yte, pred, score)\n'
-             'print("=== Red Neuronal — prueba 2020-2024 ===")\n'
              'for k, v in m.items():\n'
              '    print(f"  {k:12s}: {v:.3f}" if isinstance(v, float) else f"  {k:12s}: {v}")'),
         md("## 6. Matriz de confusión y calibración"),
@@ -282,13 +309,7 @@ Repositorio: <https://github.com/StevenSntg/SATEC-Carrion>"""),
         md("## 8. Validación de origen móvil (umbral óptimo)\n\n"
            "Esquema **train ≤ Y−2 / val = Y−1 / test = Y** para cada año Y ∈ 2016–2024. "
            "El umbral se selecciona sobre la validación maximizando F1."),
-        code('from sklearn.metrics import fbeta_score\n'
-             'import numpy as np\n'
-             'def best_t(yv, sv, beta=1.0):\n'
-             '    if int(np.sum(yv))==0: return 0.5\n'
-             '    cand=np.unique(np.concatenate([[0.0],np.sort(sv),[1.0]]))\n'
-             '    return float(max(cand, key=lambda t: fbeta_score(yv,(sv>=t).astype(int),beta=beta,zero_division=0)))\n'
-             'yt=[];yp=[];ys=[]\n'
+        code('yt=[];yp=[];ys=[]\n'
              'for Y in range(2016,2025):\n'
              '    tr=df[df.anio<=Y-2]; va=df[df.anio==Y-1]; te=df[df.anio==Y]\n'
              '    if len(tr)==0 or len(te)==0: continue\n'
@@ -298,8 +319,8 @@ Repositorio: <https://github.com/StevenSntg/SATEC-Carrion>"""),
              '    w2=compute_class_weight("balanced",classes=np.array([0,1]),y=ytr2); cw2={0:float(w2[0]),1:float(w2[1])}\n'
              '    m2=keras.Sequential([layers.Input(shape=(Xtr2n.shape[1],)),layers.Dense(32,activation="relu"),layers.Dense(32,activation="relu"),layers.Dense(1,activation="sigmoid")])\n'
              '    m2.compile(loss="binary_crossentropy",optimizer="adam"); m2.fit(Xtr2n,ytr2.to_numpy(),epochs=30,batch_size=256,class_weight=cw2,verbose=0)\n'
-             '    Xv,yv=feature_matrix(va); Xvn=(Xv.to_numpy()-mu2)/sd2\n'
-             '    sv=m2.predict(Xvn,verbose=0).ravel(); t=best_t(yv.to_numpy(),sv) if len(va) else 0.5\n'
+             '    Xva,yva=feature_matrix(va); Xvan=(Xva.to_numpy()-mu2)/sd2\n'
+             '    sv=m2.predict(Xvan,verbose=0).ravel(); t=mejor_umbral(yva.to_numpy(),sv) if len(va) else 0.5\n'
              '    Xte2,yte2=feature_matrix(te); Xte2n=(Xte2.to_numpy()-mu2)/sd2\n'
              '    s=m2.predict(Xte2n,verbose=0).ravel()\n'
              '    yt+=list(yte2);ys+=list(s);yp+=list((s>=t).astype(int))\n'
