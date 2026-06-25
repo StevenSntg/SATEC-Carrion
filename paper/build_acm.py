@@ -191,7 +191,7 @@ def fresh_document():
     return doc
 
 
-def img_width(path, target_in=4.9, max_h_in=3.7):
+def img_width(path, target_in=4.5, max_h_in=3.2):
     """Ancho objetivo (centrado, < columna) con tope de altura para densidad.
 
     Las figuras apaisadas se insertan a ~4.9 in; las altas o cuadradas se
