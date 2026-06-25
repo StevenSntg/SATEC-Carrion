@@ -4,10 +4,11 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>SATEC · Alerta temprana de la enfermedad de Carrión</title>
-  <meta name="description" content="Mapa de riesgo de brotes de la enfermedad de Carrión por provincia del Perú, estimado con redes neuronales y árboles de decisión sobre vigilancia del MINSA y clima." />
+  <meta name="description" content="Mapa de riesgo de brotes de la enfermedad de Carrión por provincia del Perú, estimado con una red neuronal y un árbol de decisión sobre vigilancia del MINSA y clima." />
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='1' x2='0' y2='0'%3E%3Cstop offset='0' stop-color='%2326c281'/%3E%3Cstop offset='.55' stop-color='%23f0a91b'/%3E%3Cstop offset='1' stop-color='%23ee4d3a'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect x='11' y='3' width='10' height='26' rx='5' fill='url(%23g)'/%3E%3C/svg%3E" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
   <link rel="stylesheet" href="styles.css" />
 </head>
@@ -21,9 +22,15 @@
       </div>
     </div>
     <p class="brand-tagline">
-      Riesgo de brote por provincia para las próximas 4 semanas, estimado con aprendizaje
-      automático sobre 25 años de vigilancia del MINSA y variables climáticas.
+      Riesgo de brote por provincia para las próximas <b>4 semanas</b>, estimado con una red
+      neuronal sobre 25 años de vigilancia del MINSA, clima y población.
     </p>
+    <dl class="stat-strip" id="stat-strip" aria-label="Resumen del estado actual">
+      <div class="stat"><dt>Provincias endémicas</dt><dd id="stat-total">61</dd></div>
+      <div class="stat"><dt>En alerta alta o media</dt><dd id="stat-alerta">—</dd></div>
+      <div class="stat"><dt>Anticipación</dt><dd>4 sem.</dd></div>
+      <div class="stat"><dt>Mejor modelo (F1)</dt><dd>Red neuronal · 0,70</dd></div>
+    </dl>
   </header>
 
   <main class="layout">
@@ -33,31 +40,62 @@
         <span class="overlay-eyebrow">Canal endémico · ML</span>
         <h2 class="overlay-title">Nivel de alerta</h2>
         <ul class="legend">
-          <li><span class="dot dot-alto"></span> Alto</li>
-          <li><span class="dot dot-medio"></span> Medio</li>
-          <li><span class="dot dot-bajo"></span> Bajo</li>
+          <li><span class="dot dot-alto"></span> Alto <span class="legend-rng">≥ 66%</span></li>
+          <li><span class="dot dot-medio"></span> Medio <span class="legend-rng">33 – 66%</span></li>
+          <li><span class="dot dot-bajo"></span> Bajo <span class="legend-rng">&lt; 33%</span></li>
           <li><span class="dot dot-na"></span> Sin dato</li>
         </ul>
       </div>
     </section>
 
     <aside class="detail-panel" aria-live="polite">
-      <p class="detail-hint" id="detail-hint">
-        Pasa el cursor o toca una provincia para ver su <b>nivel de alerta</b> y la predicción
-        de cada modelo. Las provincias coloreadas son las zonas endémicas de Carrión.
-      </p>
+      <!-- Estado inicial: resumen de niveles (aprovecha el espacio antes de seleccionar) -->
+      <div class="detail-intro" id="detail-intro">
+        <span class="detail-eyebrow">Estado de la semana más reciente</span>
+        <ul class="level-summary" id="level-summary">
+          <li class="lvl lvl-alto"><span class="lvl-count" id="count-alto">—</span><span class="lvl-name">Alto</span></li>
+          <li class="lvl lvl-medio"><span class="lvl-count" id="count-medio">—</span><span class="lvl-name">Medio</span></li>
+          <li class="lvl lvl-bajo"><span class="lvl-count" id="count-bajo">—</span><span class="lvl-name">Bajo</span></li>
+        </ul>
+        <p class="detail-hint" id="detail-hint">
+          Pasa el cursor o toca una provincia del mapa para ver su <b>probabilidad de brote</b>
+          y la predicción de cada modelo.
+        </p>
+      </div>
+
+      <!-- Detalle de provincia seleccionada -->
       <div class="detail-card" id="detail-card" hidden>
         <span class="detail-eyebrow" id="detail-depto">Departamento</span>
         <h3 class="detail-prov" id="detail-prov">Provincia</h3>
         <span class="nivel-badge" id="detail-nivel">nivel</span>
+
+        <div class="prob-block">
+          <div class="prob-head">
+            <span class="prob-label">Red neuronal · probabilidad de brote</span>
+            <span class="prob-value" id="detail-rn">0%</span>
+          </div>
+          <div class="prob-track" role="img" id="prob-track" aria-label="Probabilidad de brote">
+            <span class="prob-zone prob-zone-bajo"></span>
+            <span class="prob-zone prob-zone-medio"></span>
+            <span class="prob-zone prob-zone-alto"></span>
+            <span class="prob-fill" id="prob-fill"></span>
+            <span class="prob-marker" id="prob-marker"></span>
+          </div>
+        </div>
+
         <dl class="detail-grid">
-          <div class="detail-row"><dt>Red Neuronal (prob. de brote)</dt><dd id="detail-rn">0%</dd></div>
-          <div class="detail-row"><dt>Árbol de Decisión</dt><dd id="detail-ad">sin brote</dd></div>
-          <div class="detail-row"><dt>Casos (última semana)</dt><dd id="detail-casos">0</dd></div>
+          <div class="detail-row">
+            <dt>Árbol de decisión</dt>
+            <dd><span class="pred-chip" id="detail-ad">sin brote</span></dd>
+          </div>
+          <div class="detail-row">
+            <dt>Casos (última semana)</dt>
+            <dd id="detail-casos">0</dd>
+          </div>
         </dl>
         <p class="detail-note">
-          La red entrega una probabilidad; el árbol, una decisión binaria. Cuando difieren,
-          conviene mirar ambos.
+          La red entrega una <b>probabilidad</b> continua; el árbol, una <b>decisión</b> binaria.
+          Cuando difieren, conviene mirar ambos junto a los casos notificados.
         </p>
       </div>
     </aside>
@@ -65,49 +103,58 @@
 
   <section class="models" aria-label="Comparación de modelos">
     <div class="models-head">
-      <span class="eyebrow">Validación temporal · entrenado hasta 2019 · probado 2020 a 2024</span>
-      <h2>Red Neuronal frente a Árbol de Decisión</h2>
+      <span class="eyebrow">Validación temporal estricta · entrenado ≤ 2018 · umbral en 2019 · prueba 2020–2024</span>
+      <h2>Red neuronal frente al árbol de decisión</h2>
       <p>
-        Sobre datos nuevos, la red prioriza no dejar pasar brotes (mayor sensibilidad); el árbol
-        con poda es más conservador, y el árbol sin poda memoriza el pasado y falla ante lo nuevo.
+        Sobre datos nuevos, la <b>red neuronal</b> logra el mejor equilibrio. El árbol <b>podado</b>
+        la sigue de cerca; el mismo árbol <b>sin poda</b> memoriza el pasado y se desploma en AUC-PR,
+        la firma del sobreajuste.
       </p>
     </div>
-    <div class="model-cards">
-      <article class="model-card is-best">
-        <h3>Red Neuronal <span class="tag-best">mejor</span></h3>
-        <p class="model-arch">24 → 32 → 32 → 1 · ReLU + sigmoide</p>
-        <dl>
-          <div class="metric"><dt>Sensibilidad (brotes)</dt><dd>0,81</dd></div>
-          <div class="metric"><dt>F1</dt><dd>0,41</dd></div>
-          <div class="metric"><dt>AUC-PR</dt><dd>0,745</dd></div>
-          <div class="metric"><dt>Brier</dt><dd>0,012</dd></div>
-        </dl>
-      </article>
-      <article class="model-card">
-        <h3>Árbol de Decisión <span>(poda 8)</span></h3>
-        <p class="model-arch">entropía · pesos balanceados</p>
-        <dl>
-          <div class="metric"><dt>Sensibilidad (brotes)</dt><dd>0,71</dd></div>
-          <div class="metric"><dt>F1</dt><dd>0,13</dd></div>
-          <div class="metric"><dt>AUC-PR</dt><dd>0,625</dd></div>
-          <div class="metric"><dt>Brier</dt><dd>0,015</dd></div>
-        </dl>
-      </article>
-      <article class="model-card">
-        <h3>Canal endémico <span>(referencia)</span></h3>
-        <p class="model-arch">método clásico OPS / MINSA</p>
-        <dl>
-          <div class="metric"><dt>Sensibilidad (brotes)</dt><dd>0,64</dd></div>
-          <div class="metric"><dt>F1</dt><dd>0,40</dd></div>
-          <div class="metric"><dt>AUC-PR</dt><dd>n/d</dd></div>
-          <div class="metric"><dt>Brier</dt><dd>n/d</dd></div>
-        </dl>
-      </article>
+
+    <div class="metrics-chart" role="table" aria-label="Métricas por modelo (prueba 2020–2024)">
+      <div class="chart-legend" role="presentation">
+        <span class="key key-rn">Red neuronal</span>
+        <span class="key key-ap">Árbol (poda 8)</span>
+        <span class="key key-as">Árbol (sin poda)</span>
+        <span class="key key-cn">Canal endémico</span>
+      </div>
+
+      <div class="metric-group" role="row">
+        <div class="metric-head"><h3>F1</h3><p>equilibrio sensibilidad-precisión</p></div>
+        <div class="bars">
+          <div class="bar-row m-rn"><span class="bar-name">Red neuronal</span><div class="bar-track"><span class="bar-fill" style="--v:.70"></span></div><span class="bar-val">0,70</span></div>
+          <div class="bar-row m-ap"><span class="bar-name">Árbol (poda 8)</span><div class="bar-track"><span class="bar-fill" style="--v:.60"></span></div><span class="bar-val">0,60</span></div>
+          <div class="bar-row m-as"><span class="bar-name">Árbol (sin poda)</span><div class="bar-track"><span class="bar-fill" style="--v:.22"></span></div><span class="bar-val">0,22</span></div>
+          <div class="bar-row m-cn"><span class="bar-name">Canal endémico</span><div class="bar-track"><span class="bar-fill" style="--v:.40"></span></div><span class="bar-val">0,40</span></div>
+        </div>
+      </div>
+
+      <div class="metric-group" role="row">
+        <div class="metric-head"><h3>Sensibilidad</h3><p>brotes detectados</p></div>
+        <div class="bars">
+          <div class="bar-row m-rn"><span class="bar-name">Red neuronal</span><div class="bar-track"><span class="bar-fill" style="--v:.67"></span></div><span class="bar-val">0,67</span></div>
+          <div class="bar-row m-ap"><span class="bar-name">Árbol (poda 8)</span><div class="bar-track"><span class="bar-fill" style="--v:.67"></span></div><span class="bar-val">0,67</span></div>
+          <div class="bar-row m-as"><span class="bar-name">Árbol (sin poda)</span><div class="bar-track"><span class="bar-fill" style="--v:.55"></span></div><span class="bar-val">0,55</span></div>
+          <div class="bar-row m-cn"><span class="bar-name">Canal endémico</span><div class="bar-track"><span class="bar-fill" style="--v:.64"></span></div><span class="bar-val">0,64</span></div>
+        </div>
+      </div>
+
+      <div class="metric-group" role="row">
+        <div class="metric-head"><h3>AUC-PR</h3><p>discriminación en eventos raros</p></div>
+        <div class="bars">
+          <div class="bar-row m-rn"><span class="bar-name">Red neuronal</span><div class="bar-track"><span class="bar-fill" style="--v:.71"></span></div><span class="bar-val">0,71</span></div>
+          <div class="bar-row m-ap"><span class="bar-name">Árbol (poda 8)</span><div class="bar-track"><span class="bar-fill" style="--v:.63"></span></div><span class="bar-val">0,63</span></div>
+          <div class="bar-row m-as"><span class="bar-name">Árbol (sin poda)</span><div class="bar-track"><span class="bar-fill" style="--v:.07"></span></div><span class="bar-val">0,07</span></div>
+          <div class="bar-row m-cn"><span class="bar-name">Canal endémico</span><div class="bar-track"><span class="bar-fill bar-na"></span></div><span class="bar-val">n/d</span></div>
+        </div>
+      </div>
     </div>
+
     <p class="models-takeaway">
-      Los modelos de aprendizaje automático superan al método clásico: la Red Neuronal logra
-      el mejor equilibrio entre sensibilidad y AUC-PR, anticipando brotes que la regla clásica
-      no captura.
+      <b>Podar el árbol triplica su F1</b> (0,22 → 0,60) y multiplica por nueve su AUC-PR: limitar la
+      complejidad es decisivo para detectar la clase rara. Aun así, la red neuronal conserva la ventaja
+      y ambos superan al canal endémico clásico que hoy guía la vigilancia.
     </p>
   </section>
 
@@ -117,7 +164,7 @@
       clínico ni la confirmación de laboratorio.</strong>
     </p>
     <p class="sources">
-      Datos: MINSA (vigilancia 2000 a 2024), NASA POWER (clima), INEI (población).
+      Datos: MINSA (vigilancia 2000–2024), NASA POWER (clima), INEI (población).
       Mapa base: OpenStreetMap y CARTO. Universidad Nacional Tecnológica de Lima Sur (UNTELS).
     </p>
   </footer>
