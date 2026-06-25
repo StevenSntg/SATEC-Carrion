@@ -7,8 +7,7 @@ from satec.models.features_matrix import feature_matrix
 from satec.models.split import temporal_split
 from satec.models.baselines import baseline_persistence
 from satec.models.metrics import evaluate_predictions
-from satec.models.train import (train_decision_tree, train_random_forest,
-                                train_gradient_boosting, train_neural_net,
+from satec.models.train import (train_decision_tree, train_neural_net,
                                 nn_predict_proba)
 from satec.models.thresholds import best_threshold
 from satec.models.rolling_origin import rolling_evaluation
@@ -50,9 +49,9 @@ def run_evaluation(df, year_cutoff=2019, nn_epochs=60) -> pd.DataFrame:
     add("arbol_sin_poda", ad.predict_proba(Xv)[:, 1],
         ad.predict_proba(Xtr)[:, 1], ad.predict_proba(Xte)[:, 1])
 
-    gb = train_gradient_boosting(Xtr, ytr)
-    add("gradient_boosting", gb.predict_proba(Xv)[:, 1],
-        gb.predict_proba(Xtr)[:, 1], gb.predict_proba(Xte)[:, 1])
+    ad8 = train_decision_tree(Xtr, ytr, max_depth=8)
+    add("arbol_poda8", ad8.predict_proba(Xv)[:, 1],
+        ad8.predict_proba(Xtr)[:, 1], ad8.predict_proba(Xte)[:, 1])
 
     model, norm = train_neural_net(Xtr, ytr, epochs=nn_epochs)
     add("red_neuronal", nn_predict_proba(model, Xv, norm),

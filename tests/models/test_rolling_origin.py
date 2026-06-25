@@ -31,10 +31,10 @@ def test_pooled_predictions_respeta_anios_de_prueba():
     assert set(np.unique(out["y_pred"])) <= {0, 1}
 
 
-def test_rolling_evaluation_incluye_tres_modelos():
+def test_rolling_evaluation_incluye_modelos():
     df = _ds()
     res = rolling_evaluation(df, test_years=range(2015, 2020), nn_epochs=2)
-    assert {"red_neuronal", "gradient_boosting",
+    assert {"red_neuronal", "arbol_poda8",
             "arbol_sin_poda", "baseline_persistencia"} == set(res["modelo"])
     for col in ["f1", "f2", "especificidad", "pr_auc", "umbral"]:
         assert col in res.columns

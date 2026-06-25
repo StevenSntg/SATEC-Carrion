@@ -20,12 +20,12 @@ def _dataset(n_per_year=200):
     return pd.DataFrame(rows)
 
 
-def test_run_evaluation_incluye_tres_modelos_y_f2():
+def test_run_evaluation_incluye_modelos_y_f2():
     res = run_evaluation(_dataset(), year_cutoff=2019, nn_epochs=3)
     modelos = set(res["modelo"])
-    assert {"arbol_sin_poda", "gradient_boosting", "red_neuronal",
+    assert {"arbol_sin_poda", "arbol_poda8", "red_neuronal",
             "baseline_persistencia"} == modelos
-    assert "random_forest" not in modelos and "arbol_poda8" not in modelos
+    assert "gradient_boosting" not in modelos and "random_forest" not in modelos
     for col in ["recall", "pr_auc", "f2", "especificidad", "umbral"]:
         assert col in res.columns
     assert res["recall"].notna().all()

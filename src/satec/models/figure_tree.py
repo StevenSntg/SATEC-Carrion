@@ -1,8 +1,8 @@
-"""Figura del árbol de decisión: primeros niveles del árbol sin poda real.
+"""Figura del árbol de decisión: primeros niveles del árbol podado (max_depth=8),
+que es el modelo de árbol del artículo.
 
-El árbol sin poda tiene profundidad ~43 y miles de nodos (ingraficable). Se
-muestran sus tres primeros niveles —las particiones más informativas— como
-ilustración del modelo aprendido."""
+Se muestran sus tres primeros niveles —las particiones más informativas, encabezadas
+por la media móvil de casos— como ilustración de las reglas legibles que aprende."""
 import os
 import matplotlib
 matplotlib.use("Agg")
@@ -20,7 +20,7 @@ def plot_decision_tree(out_path, repo: str = ".", max_depth_show: int = 3):
         os.path.join(repo, "data/processed/dataset_enriched.parquet"))
     train = df[df["anio"] < 2019]
     X, y = feature_matrix(train)
-    clf = train_decision_tree(X, y, max_depth=None)  # árbol sin poda real
+    clf = train_decision_tree(X, y, max_depth=8)  # árbol podado (modelo del paper)
 
     apply_style()
     fig, ax = plt.subplots(figsize=(13.5, 7.2))
@@ -38,7 +38,7 @@ def plot_decision_tree(out_path, repo: str = ".", max_depth_show: int = 3):
 def main(repo: str = ".") -> None:
     d, n = plot_decision_tree(
         os.path.join(repo, "results", "fig_arbol.png"), repo)
-    print(f"[OK] fig_arbol.png (árbol completo: profundidad {d}, {n} nodos)")
+    print(f"[OK] fig_arbol.png (árbol podado: profundidad {d}, {n} nodos)")
 
 
 if __name__ == "__main__":

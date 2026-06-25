@@ -25,12 +25,12 @@ def export_all(repo: str = ".") -> None:
     with open(os.path.join(out_dir, "ad.json"), "w", encoding="utf-8") as f:
         json.dump(tree_to_dict(ad, FEATURE_COLS, CLASS_LABELS), f)
 
-    # Red Neuronal -> TensorFlow.js + norm.json
+    # Red Neuronal -> TensorFlow.js + norm.json (estandarizacion z-score)
     model, norm = train_neural_net(X, y, epochs=60)
     with open(os.path.join(out_dir, "norm.json"), "w", encoding="utf-8") as f:
         json.dump({"feature_names": FEATURE_COLS,
-                   "min": norm["min"].tolist(),
-                   "rng": norm["rng"].tolist()}, f)
+                   "mean": norm["mean"].tolist(),
+                   "std": norm["std"].tolist()}, f)
     rn_dir = os.path.join(out_dir, "rn")
     if os.path.exists(rn_dir):
         shutil.rmtree(rn_dir)

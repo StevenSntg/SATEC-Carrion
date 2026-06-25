@@ -15,7 +15,7 @@ _CMAP = LinearSegmentedColormap.from_list("acmblue", ["#FFFFFF", "#0072B2"])
 
 def plot_confusions(res, out_path):
     apply_style()
-    modelos = ["gradient_boosting", "red_neuronal"]
+    modelos = ["red_neuronal", "arbol_poda8"]
     fig, axes = plt.subplots(1, 2, figsize=(7.4, 3.7))
     for ax, m in zip(axes, modelos):
         r = res[res["modelo"] == m].iloc[0]
@@ -47,7 +47,7 @@ def plot_f1(res, out_path):
     apply_style()
     res = res.copy()
     res["especificidad"] = res["tn"] / (res["tn"] + res["fp"])
-    modelos = ["gradient_boosting", "red_neuronal", "arbol_sin_poda",
+    modelos = ["red_neuronal", "arbol_poda8", "arbol_sin_poda",
                "baseline_persistencia"]
     modelos = [m for m in modelos if m in set(res["modelo"])]
     sub = res[res["modelo"].isin(modelos)].set_index("modelo").loc[modelos]

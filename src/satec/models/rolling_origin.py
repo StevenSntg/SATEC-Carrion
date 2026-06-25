@@ -7,8 +7,7 @@ import pandas as pd
 from satec.models.features_matrix import feature_matrix
 from satec.models.metrics import evaluate_predictions
 from satec.models.thresholds import best_threshold
-from satec.models.train import (train_decision_tree, train_random_forest,
-                                train_gradient_boosting, train_neural_net,
+from satec.models.train import (train_decision_tree, train_neural_net,
                                 nn_predict_proba)
 
 
@@ -68,8 +67,8 @@ def rolling_evaluation(df, test_years=range(2016, 2025), nn_epochs=60, beta=1.0)
     especificaciones = {
         "arbol_sin_poda": (lambda X, y: train_decision_tree(X, y, max_depth=None),
                            lambda m, X: m.predict_proba(X)[:, 1]),
-        "gradient_boosting": (lambda X, y: train_gradient_boosting(X, y),
-                              lambda m, X: m.predict_proba(X)[:, 1]),
+        "arbol_poda8": (lambda X, y: train_decision_tree(X, y, max_depth=8),
+                        lambda m, X: m.predict_proba(X)[:, 1]),
     }
     for nombre, (build, score) in especificaciones.items():
         pooled = pooled_predictions(df, build, score, test_years, beta=beta)

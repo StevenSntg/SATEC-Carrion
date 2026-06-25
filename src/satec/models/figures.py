@@ -8,7 +8,7 @@ import matplotlib.pyplot as plt
 from satec.models.paper_style import (apply_style, clean_axes, nice_model,
                                       PALETA, BERMELLON)
 
-ORDEN = ["gradient_boosting", "red_neuronal", "arbol_sin_poda",
+ORDEN = ["red_neuronal", "arbol_poda8", "arbol_sin_poda",
          "baseline_persistencia"]
 
 

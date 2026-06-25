@@ -1,6 +1,6 @@
 import numpy as np
 import pandas as pd
-from satec.models.train import train_decision_tree, train_random_forest, train_gradient_boosting
+from satec.models.train import train_decision_tree
 
 
 def _xy(n=80):
@@ -17,16 +17,8 @@ def test_arbol_aprende_patron_separable():
     assert acc > 0.9
 
 
-def test_random_forest_aprende_patron_separable():
-    X, y = _xy()
-    clf = train_random_forest(X, y, n_estimators=50)
-    assert (clf.predict(X) == y).mean() > 0.9
+def test_arbol_podado_limita_profundidad():
+    X, y = _xy(400)
+    clf = train_decision_tree(X, y, max_depth=8)
+    assert clf.get_depth() <= 8
     assert clf.predict_proba(X).shape[1] == 2
-
-
-def test_gradient_boosting_aprende_patron_separable():
-    # El GB afinado usa min_samples_leaf=50, por lo que requiere más muestras
-    # que el patrón sintético mínimo para poder dividir.
-    X, y = _xy(600)
-    clf = train_gradient_boosting(X, y, max_iter=300)
-    assert (clf.predict(X) == y).mean() > 0.85

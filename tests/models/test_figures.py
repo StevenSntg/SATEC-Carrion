@@ -13,15 +13,16 @@ def test_plot_metrics_bar_crea_png(tmp_path):
     assert os.path.exists(out) and os.path.getsize(out) > 0
 
 
-def test_nombres_de_ensembles():
-    assert nice_model("random_forest") == "Random Forest"
-    assert nice_model("gradient_boosting") == "Gradient Boosting"
+def test_nombres_de_modelos():
+    assert nice_model("red_neuronal") == "Red neuronal"
+    assert nice_model("arbol_poda8") == "Árbol (poda 8)"
+    assert nice_model("arbol_sin_poda") == "Árbol (sin poda)"
 
 
-def test_metrics_bar_con_seis_modelos(tmp_path):
+def test_metrics_bar_con_modelos(tmp_path):
     filas = []
-    for m in ["red_neuronal", "random_forest", "gradient_boosting",
-              "arbol_poda8", "arbol_sin_poda", "baseline_persistencia"]:
+    for m in ["red_neuronal", "arbol_poda8", "arbol_sin_poda",
+              "baseline_persistencia"]:
         filas.append({"modelo": m, "recall": 0.5, "pr_auc": 0.5, "f1": 0.5})
     df = pd.DataFrame(filas)
     out = tmp_path / "m.png"
@@ -29,9 +30,9 @@ def test_metrics_bar_con_seis_modelos(tmp_path):
     assert out.exists()
 
 
-def test_confusiones_gb_y_rn(tmp_path):
+def test_confusiones_rn_y_arbol(tmp_path):
     filas = []
-    for m in ["gradient_boosting", "red_neuronal"]:
+    for m in ["red_neuronal", "arbol_poda8"]:
         filas.append({"modelo": m, "tn": 100, "fp": 10, "fn": 5, "tp": 20})
     df = pd.DataFrame(filas)
     out = tmp_path / "c.png"
