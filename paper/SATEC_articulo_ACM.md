@@ -204,7 +204,7 @@ La Figura 8 reporta la importancia por permutación de la red neuronal (entrenad
 La Figura 9 muestra la aplicación web resultante: un mapa de riesgo de las provincias endémicas sobre un mapa base del Perú, donde cada provincia se colorea según su nivel de alerta (bajo, medio o alto) para la semana más reciente. Al seleccionar una provincia, el panel lateral muestra la probabilidad de brote estimada por la red neuronal, la decisión del árbol y los casos notificados, lo que permite a un usuario de salud pública comparar de un vistazo ambos paradigmas sobre una zona concreta. El sistema es de uso libre y su código y datos son reproducibles.
 
 ![Figura 7](assets/cap_mapa_riesgo.png)
-**Figura 9.** Interfaz de SATEC: mapa de riesgo provincial sobre el mapa base del Perú, con el detalle de la provincia de Ocros (Áncash) en nivel de alerta medio. Captura de la aplicación desarrollada. Fuente: elaboración propia con SATEC [22].
+**Figura 9.** Interfaz de SATEC: mapa de riesgo provincial sobre el mapa base del Perú, con la franja de resumen del estado actual y el detalle de la provincia de Oyón (Lima) en nivel de alerta alto (probabilidad de brote estimada del 89 %), incluida la barra de probabilidad frente al umbral y la decisión del árbol. Captura de la aplicación desarrollada. Fuente: elaboración propia con SATEC [22].
 
 ## 4. Discusión
 
